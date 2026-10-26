@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Diya’s Job Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#f4f5fa;--card:#fff;--ink:#14161f;--mut:#667;--line:#e3e6ef;--acc:#4f46e5;--acc2:#e0e7ff;--g:#16a34a;--a:#d97706;--r:#dc2626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1117;--card:#181b25;--ink:#eceef6;--mut:#9aa0b4;--line:#2a2f3f;--acc:#818cf8;--acc2:#2a2d52;--g:#4ade80;--a:#fbbf24;--r:#f87171}}
+:root[data-theme="dark"]{--bg:#0f1117;--card:#181b25;--ink:#eceef6;--mut:#9aa0b4;--line:#2a2f3f;--acc:#818cf8;--acc2:#2a2d52;--g:#4ade80;--a:#fbbf24;--r:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:14px 12px 70px}h1{font-size:22px;margin:0}.mut{color:var(--mut);font-size:13px}
+.tabs{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}.tab,.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:7px 12px;cursor:pointer;font:inherit}
+.tab.on,.btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}.btn.sm{padding:3px 9px;font-size:13px}
+.fl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--mut);margin-bottom:10px}
+select,input[type=range]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px}
+#stack{position:relative;height:auto;touch-action:pan-y}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+.sw{position:relative;user-select:none;cursor:grab;transition:transform .25s,opacity .25s}.sw.drag{transition:none;cursor:grabbing}
+.stamp{position:absolute;top:14px;font-weight:800;font-size:22px;border:3px solid;border-radius:8px;padding:2px 10px;opacity:0;pointer-events:none}
+.sy{right:14px;color:var(--g);transform:rotate(10deg)}.sn{left:14px;color:var(--r);transform:rotate(-10deg)}
+.ring{--p:0;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;flex:none}
+.ring b{width:50px;height:50px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:17px}.ring.s{width:44px;height:44px}.ring.s b{width:34px;height:34px;font-size:13px}
+.top{display:flex;gap:12px;align-items:center}.top h2{font-size:18px;margin:0;line-height:1.25}
+.chip{display:inline-block;border-radius:8px;padding:1px 8px;font-size:12px;margin:0 5px 5px 0;background:var(--acc2)}.chip.g{color:var(--g)}.chip.a{color:var(--a)}
+.jd{font-size:13px;color:var(--mut);margin:8px 0;white-space:pre-wrap}details summary{cursor:pointer;color:var(--acc);font-size:13px}
+.acts{display:flex;justify-content:center;gap:18px;margin-top:16px}.rb{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);background:var(--card);font-size:26px;cursor:pointer;color:var(--ink)}
+.rb.y{color:var(--g);border-color:var(--g)}.rb.n{color:var(--r);border-color:var(--r)}.rb.u{width:46px;height:46px;font-size:18px;align-self:center}
+.row{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:8px}.row .m{flex:1;min-width:0}.row .m div:first-child{font-weight:600}
+.row .b{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}a{color:var(--acc)}.empty{text-align:center;padding:30px 10px}
+</style></head><body><main>
+<h1>Diya’s Job Deck</h1><div class="mut" id="meta">Loading…</div>
+<div class="tabs" id="tabs"></div>
+<div class="fl" id="fl"></div><div id="view"></div>
+</main><script src="config.js"></script><script>
+var J=[],DEC={},KEPT={},APP={},T="swipe",F={reg:"all",min:0,visa:false,nw:false},HIST=[],GEN="";
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
+function sv(){try{localStorage.setItem("jw_dec",JSON.stringify(DEC));localStorage.setItem("jw_kept",JSON.stringify(KEPT));localStorage.setItem("jw_app",JSON.stringify(APP))}catch(e){}}
+function col(s){return s>=75?"var(--g)":s>=50?"var(--a)":"var(--r)"}
+function ago(iso){var h=Math.max(0,(Date.now()-Date.parse(iso))/36e5);return h<1?"just now":h<24?Math.round(h)+"h ago":Math.round(h/24)+"d ago"}
+function ring(s,sm){return "<div class='ring"+(sm?" s":"")+"' style='--p:"+s+";--c:"+col(s)+"'><b>"+s+"</b></div>"}
+function chips(j){return (j.matched||[]).map(function(x){return "<span class='chip g'>✓ "+esc(x)+"</span>"}).join("")+(j.gaps||[]).map(function(x){return "<span class='chip a'>– "+esc(x)+"</span>"}).join("")}
+function meta(j){return esc(j.company)+" · "+esc(j.location||"")+" · "+ago(j.posted)+(j.new?" · <b>new</b>":"")+(j.visa==="yes"?" · visa/relocation":"")+(j.visa==="no"?" · no sponsorship":"")}
+function pool(){return J.filter(function(j){return (F.reg==="all"||(j.regions||[]).indexOf(F.reg)>-1)&&j.score>=F.min&&(!F.visa||j.visa==="yes")&&(!F.nw||j.new)}).sort(function(a,b){return b.score-a.score})}
+function decide(id,d){var j=J.filter(function(x){return x.id===id})[0];if(!j)return;DEC[id]=d;if(d==="y")KEPT[id]=j;HIST.push(id);sv()}
+function undo(){var id=HIST.pop();if(!id)return;delete DEC[id];delete KEPT[id];sv();render()}
+function load(d){J=(d.jobs||[]).map(function(j){j.matched=j.matched||[];j.gaps=j.gaps||[];return j});GEN=d.generated;DEC=ld("jw_dec",{});KEPT=ld("jw_kept",{});APP=ld("jw_app",{});render()}
+function demo(){var n=new Date().toISOString();load({generated:n,jobs:[
+ {id:"d1",company:"Demo Co (sample)",title:"Senior AI Engineer",location:"Bengaluru, India",regions:["India"],visa:"?",url:"#",posted:n,score:91,matched:["LLMs","RAG","LangChain/LlamaIndex","Python","GCP"],gaps:[],yrs:4,new:true,jd:"SAMPLE DATA. Build RAG pipelines and LLM agents on GCP."},
+ {id:"d2",company:"Sample Labs (sample)",title:"Applied Scientist",location:"Berlin, Germany",regions:["Germany"],visa:"yes",url:"#",posted:n,score:68,matched:["Forecasting/time series","PyTorch","SQL"],gaps:["Computer vision","Java"],yrs:5,new:true,jd:"SAMPLE DATA. Forecasting and ranking models. Visa sponsorship and relocation offered."},
+ {id:"d3",company:"Example Inc (sample)",title:"ML Engineer",location:"Remote - US",regions:["Remote"],visa:"no",url:"#",posted:n,score:31,matched:["Python"],gaps:["Java","Scala","Kafka/Flink","C++"],yrs:8,new:false,jd:"SAMPLE DATA. 8+ years, Java and Scala, no sponsorship."}]})}
+function render(){
+ var q=J.filter(function(j){return !DEC[j.id]}),k=Object.keys(KEPT).length,sk=Object.keys(DEC).filter(function(i){return DEC[i]==="n"}).length;
+ $("meta").textContent=J.length?J.length+" roles · updated "+new Date(GEN).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"No jobs loaded";
+ $("tabs").innerHTML=[["swipe","Swipe ("+q.length+")"],["all","All jobs"],["yes","Interested ("+k+")"],["no","Skipped ("+sk+")"]].map(function(t){return "<button class='tab"+(T===t[0]?" on":"")+"' data-t='"+t[0]+"'>"+t[1]+"</button>"}).join("");
+ var regs=["all"].concat(Object.keys(J.reduce(function(o,j){(j.regions||[]).forEach(function(r){o[r]=1});return o},{})).sort());
+ $("fl").innerHTML=J.length&&(T==="swipe"||T==="all")?"<select id='fr'>"+regs.map(function(r){return "<option value='"+r+"'"+(F.reg===r?" selected":"")+">"+(r==="all"?"All regions":r)+"</option>"}).join("")+"</select><label>Min match <input type='range' id='fm' min='0' max='90' step='10' value='"+F.min+"'> "+F.min+"</label><label><input type='checkbox' id='fv'"+(F.visa?" checked":"")+"> Visa/relocation</label><label><input type='checkbox' id='fn'"+(F.nw?" checked":"")+"> New today</label>":"";
+ $("view").innerHTML=!J.length?empty()+coPanel():T==="swipe"?vSwipe():T==="all"?vAll()+coPanel():T==="yes"?vYes():vNo();bind()}
+function coPanel(){var q="machine%20learning",C=[["Google","https://www.google.com/about/careers/applications/jobs/results?q="+q+"&location=India"],["Meta","https://www.metacareers.com/jobs?q="+q],["Apple","https://jobs.apple.com/en-in/search?search="+q+"&sort=newest"],["Microsoft","https://jobs.careers.microsoft.com/global/en/search?q="+q+"&lc=India&o=Recent"],["Netflix","https://explore.jobs.netflix.net/careers?query="+q],["Uber","https://www.uber.com/global/en/careers/list/?query="+q+"&location=IND-Karnataka-Bangalore"]],L=["Google","Meta","Apple","Microsoft","Netflix","Uber","Atlassian","Amazon"],b=function(h,t){return "<a class='btn sm' target='_blank' rel='noopener' href='"+h+"'>"+t+"</a> "};
+ return "<div class='card'><h2>Company portals with no public feed</h2><p class='mut'>Google, Meta, Apple and Microsoft don’t publish a job feed that can be read automatically, so open their portals directly, or use these LinkedIn searches limited to the last 24 hours.</p><div style='line-height:2.2'>"+C.map(function(c){return b(c[1],c[0]+" portal ↗")}).join("")+"</div><div style='line-height:2.2'>"+L.map(function(n){return b("https://www.linkedin.com/jobs/search/?keywords="+q+"%20"+encodeURIComponent(n)+"&f_TPR=r86400&sortBy=DD",n+" · 24h")}).join("")+"</div></div>"}
+function stat(){var u=(window.JOBS_URL||"jobs.json").replace(/jobs\.json$/,"status.json");fetch(u,{cache:"no-store"}).then(function(r){return r.json()}).then(function(s){if(s.failed&&s.failed.length){var e=document.createElement("div");e.className="mut";e.style.marginTop="14px";e.textContent="Boards the last run couldn’t read (fix names in config.json): "+s.failed.join(", ");document.querySelector("main").appendChild(e)}}).catch(function(){})}
+function empty(){return "<div class='card empty'><p><b>No jobs loaded yet.</b></p><p class='mut'>After the daily run finishes, this page loads <code>jobs.json</code> automatically. To use a file by hand, pick it here.</p><p><input type='file' id='ff' accept='.json'></p><p><button class='btn' id='dm'>Try with sample data</button></p></div>"}
+function vSwipe(){
+ var q=pool().filter(function(j){return !DEC[j.id]});if(!q.length)return "<div class='card empty'><p><b>You’re all caught up.</b></p><p class='mut'>Loosen the filters or check Interested for next steps.</p></div>"+(HIST.length?"<div class='acts'><button class='rb u' id='un'>↩</button></div>":"");
+ var j=q[0];return "<div id='stack'><div class='card sw' id='cd' data-id='"+j.id+"'><div class='stamp sy' id='sy'>INTERESTED</div><div class='stamp sn' id='sn'>SKIP</div><div class='top'>"+ring(j.score)+"<div><h2>"+esc(j.title)+"</h2><div class='mut'>"+meta(j)+"</div></div></div><div style='margin-top:10px'>"+chips(j)+"</div>"+(j.thin?"<div class='mut'>Short description, so the match score is a rough estimate.</div>":"")+(j.yrs?"<div class='mut'>Asks for "+j.yrs+"+ years of experience.</div>":"")+"<div class='jd'>"+esc((j.jd||"").slice(0,420))+((j.jd||"").length>420?"…":"")+"</div><details><summary>Read full description</summary><div class='jd'>"+esc(j.jd||"")+"</div></details></div></div><div class='acts'><button class='rb n' id='bn'>✕</button><button class='rb u' id='un'>↩</button><button class='rb y' id='by'>♥</button></div><div class='mut' style='text-align:center;margin-top:8px'>Swipe right to keep, left to skip · ← → keys · "+q.length+" left</div>"}
+function vAll(){var p=pool();return p.length?p.map(function(j){var d=DEC[j.id];return "<div class='row'>"+ring(j.score,1)+"<div class='m'><div>"+esc(j.title)+"</div><div class='mut'>"+meta(j)+"</div><div>"+chips(j)+"</div></div><div class='b'><a class='btn sm' href='"+esc(j.url)+"' target='_blank' rel='noopener'>Open</a><button class='btn sm"+(d==="y"?" pri":"")+"' data-d='y|"+j.id+"'>♥</button><button class='btn sm"+(d==="n"?" pri":"")+"' data-d='n|"+j.id+"'>✕</button></div></div>"}).join(""):"<div class='card empty'>No jobs match these filters.</div>"}
+function vYes(){var ids=Object.keys(KEPT);if(!ids.length)return "<div class='card empty'>Nothing kept yet. Swipe right on roles you like.</div>";
+ return "<div style='margin-bottom:8px'><button class='btn sm' id='csv'>Export CSV</button></div>"+ids.map(function(i){var j=KEPT[i];return "<div class='row'>"+ring(j.score,1)+"<div class='m'><div>"+esc(j.title)+"</div><div class='mut'>"+meta(j)+(APP[i]?" · <b>applied "+esc(APP[i])+"</b>":"")+"</div></div><div class='b'><a class='btn sm pri' href='"+esc(j.url)+"' target='_blank' rel='noopener'>Apply ↗</a><button class='btn sm' data-cp='"+i+"'>Copy for tracker</button><button class='btn sm' data-ap='"+i+"'>"+(APP[i]?"Unmark":"Mark applied")+"</button><button class='btn sm' data-rm='"+i+"'>Remove</button></div></div>"}).join("")}
+function vNo(){var ids=Object.keys(DEC).filter(function(i){return DEC[i]==="n"});if(!ids.length)return "<div class='card empty'>No skipped roles.</div>";return ids.map(function(i){var j=J.filter(function(x){return x.id===i})[0];return j?"<div class='row'>"+ring(j.score,1)+"<div class='m'><div>"+esc(j.title)+"</div><div class='mut'>"+meta(j)+"</div></div><div class='b'><button class='btn sm' data-rm='"+i+"'>Restore</button></div></div>":""}).join("")}
+function each(s,f){Array.prototype.forEach.call(document.querySelectorAll(s),f)}
+function bind(){
+ each(".tab",function(b){b.onclick=function(){T=b.dataset.t;render()}});
+ if($("fr"))$("fr").onchange=function(){F.reg=$("fr").value;render()};if($("fm"))$("fm").onchange=function(){F.min=+$("fm").value;render()};
+ if($("fv"))$("fv").onchange=function(){F.visa=$("fv").checked;render()};if($("fn"))$("fn").onchange=function(){F.nw=$("fn").checked;render()};
+ if($("dm"))$("dm").onclick=demo;if($("ff"))$("ff").onchange=function(){var r=new FileReader();r.onload=function(){try{load(JSON.parse(r.result))}catch(e){$("meta").textContent="That file isn’t a jobs.json"}};r.readAsText($("ff").files[0])};
+ if($("un"))$("un").onclick=undo;
+ each("[data-d]",function(b){b.onclick=function(){var p=b.dataset.d.split("|");if(DEC[p[1]]===p[0]){delete DEC[p[1]];delete KEPT[p[1]];sv()}else{decide(p[1],p[0])}render()}});
+ each("[data-rm]",function(b){b.onclick=function(){delete DEC[b.dataset.rm];delete KEPT[b.dataset.rm];delete APP[b.dataset.rm];sv();render()}});
+ each("[data-ap]",function(b){b.onclick=function(){var i=b.dataset.ap;if(APP[i])delete APP[i];else APP[i]=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"});sv();render()}});
+ each("[data-cp]",function(b){b.onclick=function(){var j=KEPT[b.dataset.cp],t="JOBCAPTURE:"+JSON.stringify({title:j.title,company:j.company,location:j.location,url:j.url,jd:j.jd});var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{navigator.clipboard.writeText(t)}catch(e){try{document.execCommand("copy")}catch(_){}}a.remove();b.textContent="Copied ✓"}});
+ if($("csv"))$("csv").onclick=function(){var rows=[["Company","Role","Location","Match","Link","Applied"]].concat(Object.keys(KEPT).map(function(i){var j=KEPT[i];return [j.company,j.title,j.location,j.score,j.url,APP[i]||""]}));var c=rows.map(function(r){return r.map(function(x){return '"'+String(x).replace(/"/g,'""')+'"'}).join(",")}).join("\n");var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/csv"}));a.download="interested-jobs.csv";a.click()};
+ var cd=$("cd");if(cd){var id=cd.dataset.id,x0=null,dx=0;
+  $("by").onclick=function(){fly(1)};$("bn").onclick=function(){fly(-1)};
+  cd.onpointerdown=function(e){if(e.target.closest("summary,details"))return;x0=e.clientX;dx=0;cd.classList.add("drag");try{cd.setPointerCapture(e.pointerId)}catch(_){}};
+  cd.onpointermove=function(e){if(x0==null)return;dx=e.clientX-x0;cd.style.transform="translateX("+dx+"px) rotate("+dx/20+"deg)";$("sy").style.opacity=Math.max(0,Math.min(1,dx/100));$("sn").style.opacity=Math.max(0,Math.min(1,-dx/100))};
+  var end=function(){if(x0==null)return;x0=null;cd.classList.remove("drag");if(Math.abs(dx)>100)fly(dx>0?1:-1);else{cd.style.transform="";$("sy").style.opacity=0;$("sn").style.opacity=0}};
+  cd.onpointerup=end;cd.onpointercancel=end;
+  function fly(d){cd.style.transform="translateX("+d*600+"px) rotate("+d*25+"deg)";cd.style.opacity=0;setTimeout(function(){decide(id,d>0?"y":"n");render()},230)}}}
+document.addEventListener("keydown",function(e){if(T!=="swipe"||!$("cd"))return;if(e.key==="ArrowRight")$("by").click();else if(e.key==="ArrowLeft")$("bn").click();else if(e.key==="z")undo()});
+fetch(window.JOBS_URL||"jobs.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){load(d);stat()}).catch(function(){DEC=ld("jw_dec",{});KEPT=ld("jw_kept",{});APP=ld("jw_app",{});render()});
+</script></body></html>
