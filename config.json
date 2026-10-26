@@ -1,0 +1,345 @@
+{
+ "max_age_hours": 26,
+ "title_must_match": [
+  "ai engineer",
+  "genai",
+  "gen ai",
+  "llm",
+  "machine learning",
+  "ml engineer",
+  "mlops",
+  "data scientist",
+  "applied scientist",
+  "applied ai",
+  "applied ml",
+  "forward deployed",
+  "nlp",
+  "research engineer",
+  "ai/ml",
+  "agentic",
+  "recommendation",
+  "forecasting"
+ ],
+ "title_exclude": [
+  "intern",
+  "director",
+  "vice president",
+  "vp ",
+  "staff",
+  "principal",
+  "head of",
+  "manager"
+ ],
+ "score_keywords": {
+  "rag": 3,
+  "llm": 3,
+  "langchain": 3,
+  "llamaindex": 2,
+  "vertex": 2,
+  "gcp": 2,
+  "bigquery": 2,
+  "sarima": 2,
+  "forecasting": 3,
+  "time series": 3,
+  "time-series": 3,
+  "recommendation": 3,
+  "mlops": 2,
+  "mlflow": 2,
+  "airflow": 2,
+  "nl-to-sql": 3,
+  "text-to-sql": 3,
+  "agent": 2,
+  "vector": 2,
+  "pinecone": 1,
+  "faiss": 1,
+  "pytorch": 2,
+  "python": 1,
+  "sql": 1,
+  "looker": 1,
+  "kubernetes": 1,
+  "docker": 1,
+  "evaluation": 2,
+  "fine-tun": 2
+ },
+ "greenhouse": [
+  "databricks",
+  "stripe",
+  "airbnb",
+  "cloudflare",
+  "elastic",
+  "twilio",
+  "mongodb",
+  "samsara",
+  "okta",
+  "datadog",
+  "pinterest",
+  "gitlab",
+  "grafanalabs",
+  "coinbase",
+  "figma",
+  "snowflakecomputing",
+  "intuit",
+  "phonepe",
+  "razorpay",
+  "postman",
+  "adyen",
+  "wise",
+  "n26",
+  "celonis",
+  "grab",
+  "hellofresh",
+  "contentful",
+  "getyourguide",
+  "trivago",
+  "deliveryhero",
+  "zalando",
+  "monzo",
+  "checkoutcom",
+  "bolt",
+  "mollie",
+  "miro",
+  "personio",
+  "sumup",
+  "taxfix"
+ ],
+ "lever": [
+  "cred",
+  "meesho",
+  "swiggy",
+  "paytm",
+  "dream11",
+  "freshworks",
+  "zeta",
+  "groww",
+  "mistral",
+  "spotify",
+  "palantir",
+  "wealthsimple",
+  "shopify"
+ ],
+ "ashby": [
+  "openai",
+  "notion",
+  "ramp",
+  "cohere",
+  "perplexity",
+  "sarvam",
+  "ema",
+  "deepl",
+  "synthesia",
+  "elevenlabs",
+  "lovable",
+  "clickhouse",
+  "supabase",
+  "vercel",
+  "linear"
+ ],
+ "abroad_max_age_hours": 50,
+ "regions": {
+  "India": [
+   "bengaluru",
+   "bangalore",
+   "india",
+   "hyderabad",
+   "pune",
+   "mumbai",
+   "gurgaon",
+   "gurugram",
+   "chennai",
+   "noida"
+  ],
+  "UK": [
+   "london",
+   "united kingdom",
+   "uk",
+   "manchester",
+   "edinburgh",
+   "cambridge"
+  ],
+  "Germany": [
+   "germany",
+   "berlin",
+   "munich",
+   "hamburg",
+   "frankfurt",
+   "cologne"
+  ],
+  "Netherlands": [
+   "netherlands",
+   "amsterdam",
+   "rotterdam",
+   "eindhoven",
+   "utrecht"
+  ],
+  "Ireland": [
+   "ireland",
+   "dublin"
+  ],
+  "Canada": [
+   "canada",
+   "toronto",
+   "vancouver",
+   "montreal",
+   "ottawa",
+   "waterloo"
+  ],
+  "Singapore": [
+   "singapore"
+  ],
+  "UAE": [
+   "dubai",
+   "abu dhabi",
+   "uae",
+   "united arab emirates"
+  ],
+  "Australia": [
+   "australia",
+   "sydney",
+   "melbourne"
+  ],
+  "Europe-other": [
+   "paris",
+   "france",
+   "stockholm",
+   "sweden",
+   "zurich",
+   "switzerland",
+   "madrid",
+   "barcelona",
+   "spain",
+   "lisbon",
+   "portugal",
+   "copenhagen",
+   "denmark",
+   "helsinki",
+   "finland",
+   "warsaw",
+   "poland",
+   "europe",
+   "emea"
+  ],
+  "USA": [
+   "united states",
+   "usa",
+   "new york",
+   "san francisco",
+   "seattle",
+   "austin",
+   "boston",
+   "california"
+  ],
+  "Remote": [
+   "remote"
+  ]
+ },
+ "visa_yes": [
+  "visa sponsorship",
+  "sponsor visa",
+  "sponsorship available",
+  "we sponsor",
+  "will sponsor",
+  "relocation",
+  "relocate",
+  "blue card",
+  "skilled worker",
+  "work permit support",
+  "visa support"
+ ],
+ "visa_no": [
+  "no sponsorship",
+  "unable to sponsor",
+  "not able to sponsor",
+  "cannot sponsor",
+  "without sponsorship",
+  "not offer sponsorship",
+  "must be authorized to work",
+  "must be authorised to work",
+  "right to work in",
+  "do not sponsor",
+  "won't sponsor"
+ ],
+ "search_terms": [
+  "machine learning",
+  "AI engineer",
+  "data scientist",
+  "generative AI"
+ ],
+ "workday": [
+  [
+   "nvidia.wd5.myworkdayjobs.com",
+   "nvidia",
+   "NVIDIAExternalCareerSite"
+  ],
+  [
+   "salesforce.wd12.myworkdayjobs.com",
+   "salesforce",
+   "External_Career_Site"
+  ],
+  [
+   "adobe.wd5.myworkdayjobs.com",
+   "adobe",
+   "external_experienced"
+  ],
+  [
+   "walmart.wd5.myworkdayjobs.com",
+   "walmart",
+   "WalmartExternal"
+  ],
+  [
+   "dell.wd1.myworkdayjobs.com",
+   "dell",
+   "External"
+  ],
+  [
+   "paypal.wd1.myworkdayjobs.com",
+   "paypal",
+   "jobs"
+  ],
+  [
+   "workday.wd5.myworkdayjobs.com",
+   "workday",
+   "Workday"
+  ],
+  [
+   "autodesk.wd1.myworkdayjobs.com",
+   "autodesk",
+   "Ext"
+  ],
+  [
+   "redhat.wd5.myworkdayjobs.com",
+   "redhat",
+   "Jobs"
+  ],
+  [
+   "mastercard.wd1.myworkdayjobs.com",
+   "mastercard",
+   "CorporateCareers"
+  ]
+ ],
+ "smartrecruiters": [
+  "Visa",
+  "ServiceNow",
+  "BoschGroup",
+  "Experian",
+  "Ubisoft2"
+ ],
+ "amazon_queries": [
+  "machine learning",
+  "AI engineer",
+  "data scientist",
+  "applied scientist",
+  "generative AI"
+ ],
+ "amazon": [
+  "India",
+  "United Kingdom",
+  "Germany",
+  "Netherlands",
+  "Ireland",
+  "Canada",
+  "Singapore"
+ ],
+ "atlassian": [
+  "atlassian"
+ ]
+}

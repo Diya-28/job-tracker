@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Daily job watcher (India + abroad): pulls public ATS job-board APIs (Greenhouse, Lever, Ashby),
+keeps roles posted in the last N hours in India/remote, scores them against Diya's
+resume keywords, and writes docs/index.html + docs/jobs.json."""
+import json, re, sys, html, time, urllib.request, urllib.parse, urllib.error
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+CFG = json.loads((ROOT / "config.json").read_text())
+UA = {"User-Agent": "jobwatch-personal/1.0 (personal job search)"}
+
+def get(url):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.load(r)
+
+def parse_iso(s):
+    if not s: return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+def from_greenhouse(slug):
+    d = get(f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true")
+    for j in d.get("jobs", []):
+        posted = parse_iso(j.get("first_published") or j.get("updated_at"))
+        yield dict(company=slug, title=j.get("title", ""), location=(j.get("location") or {}).get("name", ""),
+                   url=j.get("absolute_url", ""), posted=posted, text=html.unescape(re.sub("<[^>]+>", " ", j.get("content", ""))), src="greenhouse")
+
+def from_lever(slug):
+    d = get(f"https://api.lever.co/v0/postings/{slug}?mode=json")
+    for j in d:
+        ms = j.get("createdAt")
+        posted = datetime.fromtimestamp(ms / 1000, tz=timezone.utc) if ms else None
+        yield dict(company=slug, title=j.get("text", ""), location=(j.get("categories") or {}).get("location", "") or "",
+                   url=j.get("hostedUrl", ""), posted=posted, text=j.get("descriptionPlain", ""), src="lever")
+
+def from_ashby(slug):
+    d = get(f"https://api.ashbyhq.com/posting-api/job-board/{slug}")
+    for j in d.get("jobs", []):
+        loc = j.get("location", "") or ""
+        if j.get("isRemote"): loc += " Remote"
+        yield dict(company=slug, title=j.get("title", ""), location=loc, url=j.get("jobUrl", ""),
+                   posted=parse_iso(j.get("publishedAt")), text=j.get("descriptionPlain", ""), src="ashby")
+
+
+FIRST_RUN, SEEN, NEWSEEN = True, set(), set()
+CC = {"in": "India", "gb": "United Kingdom", "de": "Germany", "nl": "Netherlands", "ie": "Ireland", "ca": "Canada", "sg": "Singapore", "ae": "United Arab Emirates", "au": "Australia", "us": "United States", "fr": "France", "es": "Spain", "se": "Sweden", "ch": "Switzerland", "pt": "Portugal", "dk": "Denmark", "fi": "Finland", "pl": "Poland"}
+AC = {"IND": "India", "USA": "United States", "GBR": "United Kingdom", "DEU": "Germany", "NLD": "Netherlands", "IRL": "Ireland", "CAN": "Canada", "SGP": "Singapore", "ARE": "United Arab Emirates", "AUS": "Australia"}
+
+def post(url, body):
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={**UA, "Content-Type": "application/json", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.load(r)
+
+def strip(h): return html.unescape(re.sub("<[^>]+>", " ", h or ""))
+
+def wd_posted(txt, now):
+    t = (txt or "").lower()
+    if "today" in t: return now - timedelta(hours=2)
+    if "yesterday" in t: return now - timedelta(hours=24)
+    m = re.search(r"(\d+)\+?\s*days?", t)
+    return now - timedelta(days=int(m.group(1))) if m else None
+
+def from_workday(spec):
+    """Workday career sites (NVIDIA, Salesforce, Adobe, Walmart...). Dates are 'Posted Today/Yesterday/N days ago'."""
+    host, tenant, site = spec
+    now, seen, base = datetime.now(timezone.utc), set(), f"https://{host}/wday/cxs/{tenant}/{site}"
+    for term in CFG["search_terms"]:
+        for off in (0, 20, 40):
+            posts = post(base + "/jobs", {"appliedFacets": {}, "limit": 20, "offset": off, "searchText": term}).get("jobPostings") or []
+            if not posts: break
+            for p in posts:
+                path = p.get("externalPath", "")
+                if not path or path in seen: continue
+                seen.add(path)
+                j = dict(company=tenant, title=p.get("title", ""), location=p.get("locationsText", ""), url=f"https://{host}/en-US/{site}{path}",
+                         posted=wd_posted(p.get("postedOn"), now), text="", src="workday")
+                info = None
+                if re.match(r"\d+ locations?", j["location"].lower()):
+                    try:
+                        info = get(base + path).get("jobPostingInfo", {})
+                        j["location"] = " ".join([info.get("location") or ""] + list(info.get("additionalLocations") or []))
+                    except Exception: pass
+                if not keep(j, now): continue
+                try:
+                    info = info or get(base + path).get("jobPostingInfo", {})
+                    j["text"] = strip(info.get("jobDescription"))
+                except Exception: pass
+                yield j
+            time.sleep(0.2)
+
+def from_smartrecruiters(slug):
+    now, seen = datetime.now(timezone.utc), set()
+    for term in CFG["search_terms"]:
+        for p in get(f"https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100&q={urllib.parse.quote(term)}").get("content", []):
+            pid = p.get("id")
+            if not pid or pid in seen: continue
+            seen.add(pid); loc = p.get("location") or {}
+            L = ", ".join(x for x in [loc.get("city"), CC.get((loc.get("country") or "").lower(), loc.get("country"))] if x) + (" Remote" if loc.get("remote") else "")
+            j = dict(company=slug, title=p.get("name", ""), location=L, url=f"https://jobs.smartrecruiters.com/{slug}/{pid}", posted=parse_iso(p.get("releasedDate")), text="", src="smartrecruiters")
+            if not keep(j, now): continue
+            try:
+                ad = get(f"https://api.smartrecruiters.com/v1/companies/{slug}/postings/{pid}").get("jobAd", {}).get("sections", {})
+                j["text"] = " ".join(strip((ad.get(k) or {}).get("text")) for k in ("jobDescription", "qualifications", "additionalInformation"))
+            except Exception: pass
+            yield j
+        time.sleep(0.2)
+
+def from_amazon(loc):
+    """amazon.jobs search feed, newest first. Dates have day precision only."""
+    now, seen = datetime.now(timezone.utc), set()
+    for term in CFG["amazon_queries"]:
+        d = get("https://www.amazon.jobs/en/search.json?" + urllib.parse.urlencode({"base_query": term, "loc_query": loc, "sort": "recent", "result_limit": 50, "offset": 0}))
+        for p in d.get("jobs", []):
+            jid = p.get("id_icims") or p.get("id")
+            if jid in seen: continue
+            seen.add(jid)
+            try: dt = datetime.strptime(p.get("posted_date", ""), "%B %d, %Y").replace(hour=12, tzinfo=timezone.utc)
+            except ValueError: dt = None
+            if dt and dt > now: dt = now
+            L = ", ".join(x for x in [p.get("city"), p.get("state"), AC.get(p.get("country_code"), p.get("country_code"))] if x)
+            yield dict(company="amazon", title=p.get("title", ""), location=L, url="https://www.amazon.jobs" + p.get("job_path", ""), posted=dt,
+                       text=strip(" ".join([p.get("description") or "", p.get("basic_qualifications") or "", p.get("preferred_qualifications") or ""])), src="amazon")
+        time.sleep(0.3)
+
+def from_atlassian(_slug):
+    """Atlassian's listings feed has no reliable posting date, so only roles first seen after the first run are shown as new."""
+    d = get("https://www.atlassian.com/endpoint/careers/listings")
+    now = datetime.now(timezone.utc)
+    for p in (d if isinstance(d, list) else d.get("jobs", [])):
+        url = f"https://www.atlassian.com/company/careers/details/{p.get('id')}"
+        NEWSEEN.add(url)
+        if FIRST_RUN or url in SEEN: continue
+        locs = p.get("locations") or [p.get("location", "")]
+        yield dict(company="atlassian", title=p.get("title", ""), location=", ".join(map(str, locs)), url=url, posted=now, text="", src="atlassian")
+
+SOURCES = {"greenhouse": from_greenhouse, "lever": from_lever, "ashby": from_ashby, "workday": from_workday, "smartrecruiters": from_smartrecruiters, "amazon": from_amazon, "atlassian": from_atlassian}
+
+def regions_of(loc):
+    l = loc.lower()
+    return [r for r, terms in CFG["regions"].items() if any(re.search(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", l) for t in terms)]
+
+def visa_flag(text):
+    t = text.lower()
+    if any(k in t for k in CFG["visa_no"]): return "no"
+    if any(k in t for k in CFG["visa_yes"]): return "yes"
+    return "?"
+
+def keep(j, now):
+    t = j["title"].lower()
+    if not j["posted"]: return False
+    j["regions"] = regions_of(j["location"])
+    if not j["regions"]: return False
+    limit = CFG["max_age_hours"] if j["regions"] == ["India"] else CFG["abroad_max_age_hours"]
+    if now - j["posted"] > timedelta(hours=limit): return False
+    if not any(k in t for k in CFG["title_must_match"]): return False
+    if any(k in t for k in CFG["title_exclude"]): return False
+    j["visa"] = visa_flag(j["text"])
+    return True
+
+# term -> (weight, on_resume, regex). Match = share of the JD's recognised skills that Diya's resume shows.
+def _t(w, have, *alts): return (w, have, re.compile(r"(?<![a-z0-9+#])(?:" + "|".join(alts) + r")(?![a-z0-9+#])", re.I))
+SKILLS = {
+ "Python": _t(2,1,"python"), "SQL": _t(2,1,"sql","bigquery","postgres(?:ql)?"), "LLMs": _t(4,1,"llms?","large language models?","generative ai","genai","gen ai"),
+ "RAG": _t(4,1,"rag","retrieval[- ]augmented"), "LangChain/LlamaIndex": _t(3,1,"langchain","llamaindex","llama[- ]index"), "Prompt engineering": _t(2,1,"prompt engineering","prompting"),
+ "Fine-tuning": _t(3,1,"fine[- ]?tun\\w*","lora","peft"), "Agents": _t(3,1,"agentic","agents?","multi[- ]agent"), "Vector DBs": _t(2,1,"vector (?:db|database|store)s?","pinecone","faiss","chroma(?:db)?","weaviate","milvus"),
+ "NLP": _t(2,1,"nlp","natural language"), "Forecasting/time series": _t(3,1,"forecast\\w*","time[- ]series","sarima","prophet","arima"), "Recommenders": _t(3,1,"recommend\\w+","personali[sz]ation","ranking"),
+ "PyTorch": _t(3,1,"pytorch"), "TensorFlow": _t(2,1,"tensorflow","keras"), "scikit-learn/XGBoost": _t(2,1,"scikit-learn","sklearn","xgboost","lightgbm"), "Hugging Face": _t(2,1,"hugging ?face","transformers"),
+ "Deep learning": _t(2,1,"deep learning","neural networks?"), "MLOps": _t(3,1,"mlops","ml pipelines?","model deployment","model serving","mlflow","kubeflow"), "Evaluation/A-B tests": _t(2,1,"a/b test\\w*","experimentation","model evaluation","evals?"),
+ "Spark": _t(2,1,"spark","pyspark"), "Airflow/dbt": _t(2,1,"airflow","dbt"), "Snowflake": _t(1,1,"snowflake"), "GCP": _t(3,1,"gcp","google cloud","vertex ai","dataflow"), "AWS": _t(3,1,"aws","sagemaker","amazon web services"),
+ "Docker/Kubernetes": _t(2,1,"docker","kubernetes","k8s"), "CI/CD": _t(1,1,"ci/cd","cicd"), "Looker/BI": _t(1,1,"looker","tableau","power ?bi"), "Anomaly detection": _t(1,1,"anomaly detection"), "REST APIs": _t(1,1,"rest(?:ful)? apis?","fastapi","flask"),
+ "Java": _t(3,0,"java"), "Scala": _t(2,0,"scala"), "C++": _t(3,0,"c\\+\\+"), "Go": _t(2,0,"golang"), "Rust": _t(2,0,"rust"), "Azure": _t(3,0,"azure"), "Databricks": _t(2,0,"databricks"),
+ "Kafka/Flink": _t(2,0,"kafka","flink","streaming"), "Terraform": _t(1,0,"terraform"), "Ray/vLLM/Triton": _t(2,0,"ray","vllm","triton","tensorrt"), "CUDA/GPU": _t(2,0,"cuda","gpus?","distributed training"),
+ "Computer vision": _t(3,0,"computer vision","image recognition","object detection"), "Speech/audio": _t(2,0,"speech","asr","tts"), "Reinforcement learning/RLHF": _t(2,0,"reinforcement learning","rlhf"),
+ "Search/IR": _t(2,0,"information retrieval","search relevance","learning to rank","elasticsearch"), "Causal inference": _t(2,0,"causal inference","bayesian"), "Knowledge graphs": _t(1,0,"knowledge graphs?","graph neural"),
+}
+CORE_TITLE = re.compile(r"\b(ai|ml|machine learning|genai|gen ai|llm|data scientist|applied scientist|nlp|mlops)\b", re.I)
+
+def score(j):
+    blob = j["title"] + " \n " + j["text"]
+    hit = {k: v for k, v in SKILLS.items() if v[2].search(blob)}
+    tot = sum(v[0] for v in hit.values())
+    have = sum(v[0] for v in hit.values() if v[1])
+    j["matched"] = sorted(k for k, v in hit.items() if v[1]); j["gaps"] = sorted(k for k, v in hit.items() if not v[1])
+    yrs = [int(m) for m in re.findall(r"(\d{1,2})\s*\+?\s*(?:-\s*\d+\s*)?years?", j["text"].lower()) if int(m) <= 20]
+    j["yrs"] = max(yrs) if yrs else None
+    if tot < 6: j["thin"] = True; base = 40 + (10 if CORE_TITLE.search(j["title"]) else 0)
+    else: j["thin"] = False; base = 100 * have / tot + (5 if CORE_TITLE.search(j["title"]) else 0)
+    if j["yrs"] and j["yrs"] >= 7: base -= 15
+    elif j["yrs"] and j["yrs"] >= 6: base -= 8
+    return max(0, min(99, round(base)))
+
+def li(title, loc="India"): return "https://www.linkedin.com/jobs/search/?keywords=" + urllib.parse.quote(title) + "&location=" + urllib.parse.quote(loc) + "&f_TPR=r86400&sortBy=DD"
+
+def main():
+    now = datetime.now(timezone.utc)
+    seen_p = ROOT / "seen.json"
+    global FIRST_RUN, SEEN
+    FIRST_RUN = not seen_p.exists()
+    seen = SEEN = set(json.loads(seen_p.read_text())) if seen_p.exists() else set()
+    jobs, failed = [], []
+    for kind, items in CFG.items():
+        if kind not in SOURCES: continue
+        for it in items:
+            label = it[1] if isinstance(it, list) else it
+            try:
+                for j in SOURCES[kind](it):
+                    if keep(j, now): j["score"] = score(j); jobs.append(j)
+            except Exception as e:
+                failed.append(f"{label} ({kind})"); print("FAILED", label, kind, repr(e)[:160])
+            time.sleep(0.3)
+    jobs = list({j["url"]: j for j in jobs}.values())
+    for j in jobs: j["new"] = j["url"] not in seen
+    jobs.sort(key=lambda j: (-j["new"], -j["score"]))
+    (ROOT / "docs").mkdir(exist_ok=True)
+    import hashlib
+    out = [dict(id=hashlib.md5(j["url"].encode()).hexdigest()[:12], company=j["company"], title=j["title"], location=j["location"], regions=j["regions"],
+                visa=j["visa"], url=j["url"], posted=j["posted"].isoformat(), src=j["src"], score=j["score"], matched=j["matched"], gaps=j["gaps"],
+                yrs=j["yrs"], thin=j["thin"], new=j["new"], jd=re.sub(r"\s+", " ", j["text"]).strip()[:6000]) for j in jobs]
+    (ROOT / "docs" / "jobs.json").write_text(json.dumps(dict(generated=now.isoformat(), jobs=out), ensure_ascii=False))
+    seen_p.write_text(json.dumps(sorted(seen | NEWSEEN | {j["url"] for j in jobs})))
+    (ROOT / "docs" / "status.json").write_text(json.dumps(dict(generated=now.isoformat(), failed=failed)))
+    print(f"{len(jobs)} matches, {sum(j['new'] for j in jobs)} new, {len(failed)} boards failed")
+
+if __name__ == "__main__":
+    main()

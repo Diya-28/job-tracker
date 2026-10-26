@@ -1,0 +1,5 @@
+# Only redeploy the site when the page itself changes, not on the daily jobs.json commit.
+[build]
+  publish = "docs"
+  command = ""
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- docs/index.html docs/config.js"
