@@ -193,6 +193,37 @@ def score(j):
     elif j["yrs"] and j["yrs"] >= 6: base -= 8
     return max(0, min(99, round(base)))
 
+class Skip(Exception): pass
+
+def from_arbeitnow(_slug):
+    """arbeitnow.com free job board API (mostly Germany/EU, many relocation-friendly roles)."""
+    now = datetime.now(timezone.utc)
+    for page in (1, 2, 3):
+        for p in get(f"https://www.arbeitnow.com/api/job-board-api?page={page}").get("data", []):
+            ts = p.get("created_at")
+            posted = datetime.fromtimestamp(ts, tz=timezone.utc) if isinstance(ts, (int, float)) else None
+            loc = (p.get("location") or "") + (" Remote" if p.get("remote") else "")
+            text = strip(p.get("description")) + (" visa sponsorship" if p.get("visa_sponsorship") else "")
+            yield dict(company=p.get("company_name", ""), title=p.get("title", ""), location=loc + " Germany", url=p.get("url", ""), posted=posted, text=text, src="arbeitnow")
+        time.sleep(0.3)
+
+def from_adzuna(cc):
+    """Adzuna aggregator API (free key): jobs gathered from many boards, with creation dates. Descriptions are short snippets."""
+    import os
+    app_id, app_key = os.environ.get("ADZUNA_ID"), os.environ.get("ADZUNA_KEY")
+    if not app_id or not app_key: raise Skip("no ADZUNA_ID / ADZUNA_KEY secret")
+    seen = set()
+    for term in CFG["search_terms"]:
+        q = urllib.parse.urlencode({"app_id": app_id, "app_key": app_key, "results_per_page": 50, "what": term, "max_days_old": 4, "sort_by": "date", "content-type": "application/json"})
+        for p in get(f"https://api.adzuna.com/v1/api/jobs/{cc}/search/1?{q}").get("results", []):
+            if p.get("id") in seen: continue
+            seen.add(p.get("id")); loc = p.get("location") or {}
+            L = ", ".join(list(loc.get("area") or []) or [loc.get("display_name", "")]) + ", " + CC.get(cc, cc)
+            yield dict(company=(p.get("company") or {}).get("display_name", ""), title=p.get("title", ""), location=L, url=p.get("redirect_url", ""), posted=parse_iso(p.get("created")), text=strip(p.get("description")), src="adzuna")
+        time.sleep(0.3)
+
+SOURCES.update({"arbeitnow": from_arbeitnow, "adzuna": from_adzuna})
+
 def li(title, loc="India"): return "https://www.linkedin.com/jobs/search/?keywords=" + urllib.parse.quote(title) + "&location=" + urllib.parse.quote(loc) + "&f_TPR=r86400&sortBy=DD"
 
 def main():
@@ -201,7 +232,7 @@ def main():
     global FIRST_RUN, SEEN
     FIRST_RUN = not seen_p.exists()
     seen = SEEN = set(json.loads(seen_p.read_text())) if seen_p.exists() else set()
-    jobs, failed = [], []
+    jobs, failed, skipped = [], [], []
     for kind, items in CFG.items():
         if kind not in SOURCES: continue
         for it in items:
@@ -209,6 +240,8 @@ def main():
             try:
                 for j in SOURCES[kind](it):
                     if keep(j, now): j["score"] = score(j); jobs.append(j)
+            except Skip as e:
+                skipped.append(f"{label} ({kind}): {e}")
             except Exception as e:
                 failed.append(f"{label} ({kind})"); print("FAILED", label, kind, repr(e)[:160])
             time.sleep(0.3)
@@ -222,7 +255,7 @@ def main():
                 yrs=j["yrs"], thin=j["thin"], new=j["new"], jd=re.sub(r"\s+", " ", j["text"]).strip()[:6000]) for j in jobs]
     (ROOT / "docs" / "jobs.json").write_text(json.dumps(dict(generated=now.isoformat(), jobs=out), ensure_ascii=False))
     seen_p.write_text(json.dumps(sorted(seen | NEWSEEN | {j["url"] for j in jobs})))
-    (ROOT / "docs" / "status.json").write_text(json.dumps(dict(generated=now.isoformat(), failed=failed)))
+    (ROOT / "docs" / "status.json").write_text(json.dumps(dict(generated=now.isoformat(), failed=failed, skipped=skipped, counts={k: sum(1 for j in jobs if j["src"] == k) for k in sorted({j["src"] for j in jobs})})))
     print(f"{len(jobs)} matches, {sum(j['new'] for j in jobs)} new, {len(failed)} boards failed")
 
 if __name__ == "__main__":
