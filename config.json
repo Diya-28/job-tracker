@@ -1,5 +1,5 @@
 {
- "max_age_hours": 26,
+ "max_age_hours": 72,
  "title_must_match": [
   "ai engineer",
   "genai",
@@ -134,7 +134,7 @@
   "vercel",
   "linear"
  ],
- "abroad_max_age_hours": 50,
+ "abroad_max_age_hours": 96,
  "regions": {
   "India": [
    "bengaluru",
@@ -341,5 +341,17 @@
  ],
  "atlassian": [
   "atlassian"
+ ],
+ "arbeitnow": [
+  "arbeitnow"
+ ],
+ "adzuna": [
+  "in",
+  "gb",
+  "de",
+  "nl",
+  "ca",
+  "sg",
+  "au"
  ]
 }
