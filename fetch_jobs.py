@@ -143,9 +143,11 @@ def regions_of(loc):
     l = loc.lower()
     return [r for r, terms in CFG["regions"].items() if any(re.search(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", l) for t in terms)]
 
+NEG_VISA = re.compile(r"\b(?:no|not|n't|cannot|unable|without|never)\W+(?:\w+\W+){0,6}?(?:visa|sponsor\w*)|\b(?:visa|sponsor\w*)\W+(?:\w+\W+){0,6}?(?:not|unavailable|n't)\b", re.I)
+
 def visa_flag(text):
     t = text.lower()
-    if any(k in t for k in CFG["visa_no"]): return "no"
+    if any(k in t for k in CFG["visa_no"]) or NEG_VISA.search(t): return "no"
     if any(k in t for k in CFG["visa_yes"]): return "yes"
     return "?"
 
@@ -188,7 +190,7 @@ def score(j):
     yrs = [int(m) for m in re.findall(r"(\d{1,2})\s*\+?\s*(?:-\s*\d+\s*)?years?", j["text"].lower()) if int(m) <= 20]
     j["yrs"] = max(yrs) if yrs else None
     if tot < 6: j["thin"] = True; base = 40 + (10 if CORE_TITLE.search(j["title"]) else 0)
-    else: j["thin"] = False; base = 100 * have / tot + (5 if CORE_TITLE.search(j["title"]) else 0)
+    else: j["thin"] = False; base = 50 + (100 * have / tot - 50) * min(1, tot / 14) + (5 if CORE_TITLE.search(j["title"]) else 0)  # few recognised skills pull the score toward 50
     if j["yrs"] and j["yrs"] >= 7: base -= 15
     elif j["yrs"] and j["yrs"] >= 6: base -= 8
     return max(0, min(99, round(base)))
@@ -204,7 +206,9 @@ def from_arbeitnow(_slug):
             posted = datetime.fromtimestamp(ts, tz=timezone.utc) if isinstance(ts, (int, float)) else None
             loc = (p.get("location") or "") + (" Remote" if p.get("remote") else "")
             text = strip(p.get("description")) + (" visa sponsorship" if p.get("visa_sponsorship") else "")
-            yield dict(company=p.get("company_name", ""), title=p.get("title", ""), location=loc + " Germany", url=p.get("url", ""), posted=posted, text=text, src="arbeitnow")
+            m = re.search(r"arbeitnow\.([a-z.]+)/", p.get("url") or "")
+            country = {"co.uk": "United Kingdom", "fr": "France", "nl": "Netherlands", "ch": "Switzerland"}.get(m.group(1) if m else "", "Germany")
+            yield dict(company=p.get("company_name", ""), title=p.get("title", ""), location=f"{loc} {country}", url=p.get("url", ""), posted=posted, text=text, src="arbeitnow")
         time.sleep(0.3)
 
 def from_adzuna(cc):
