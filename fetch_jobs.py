@@ -226,37 +226,58 @@ SOURCES.update({"arbeitnow": from_arbeitnow, "adzuna": from_adzuna})
 
 def li(title, loc="India"): return "https://www.linkedin.com/jobs/search/?keywords=" + urllib.parse.quote(title) + "&location=" + urllib.parse.quote(loc) + "&f_TPR=r86400&sortBy=DD"
 
+def clean(j):
+    """Real feeds contain nulls. Make every text field a string so nothing downstream can crash."""
+    for k in ("company", "title", "location", "url", "text", "src"):
+        j[k] = str(j.get(k) or "")
+    return j
+
+def run_one(kind, it, now):
+    label = it[1] if isinstance(it, list) else it
+    try:
+        out = []
+        for j in SOURCES[kind](it):
+            j = clean(j)
+            if j["url"] and keep(j, now):
+                j["score"] = score(j); out.append(j)
+        return label, kind, out, None
+    except Skip as e:
+        return label, kind, [], ("skip", str(e))
+    except Exception as e:
+        return label, kind, [], ("fail", repr(e)[:160])
+
 def main():
+    import hashlib, traceback
+    from concurrent.futures import ThreadPoolExecutor
     now = datetime.now(timezone.utc)
     seen_p = ROOT / "seen.json"
     global FIRST_RUN, SEEN
     FIRST_RUN = not seen_p.exists()
-    seen = SEEN = set(json.loads(seen_p.read_text())) if seen_p.exists() else set()
-    jobs, failed, skipped = [], [], []
-    for kind, items in CFG.items():
-        if kind not in SOURCES: continue
-        for it in items:
-            label = it[1] if isinstance(it, list) else it
-            try:
-                for j in SOURCES[kind](it):
-                    if keep(j, now): j["score"] = score(j); jobs.append(j)
-            except Skip as e:
-                skipped.append(f"{label} ({kind}): {e}")
-            except Exception as e:
-                failed.append(f"{label} ({kind})"); print("FAILED", label, kind, repr(e)[:160])
-            time.sleep(0.3)
-    jobs = list({j["url"]: j for j in jobs}.values())
-    for j in jobs: j["new"] = j["url"] not in seen
-    jobs.sort(key=lambda j: (-j["new"], -j["score"]))
+    try: seen = SEEN = set(json.loads(seen_p.read_text())) if seen_p.exists() else set()
+    except ValueError: seen = SEEN = set(); FIRST_RUN = True
     (ROOT / "docs").mkdir(exist_ok=True)
-    import hashlib
-    out = [dict(id=hashlib.md5(j["url"].encode()).hexdigest()[:12], company=j["company"], title=j["title"], location=j["location"], regions=j["regions"],
-                visa=j["visa"], url=j["url"], posted=j["posted"].isoformat(), src=j["src"], score=j["score"], matched=j["matched"], gaps=j["gaps"],
-                yrs=j["yrs"], thin=j["thin"], new=j["new"], jd=re.sub(r"\s+", " ", j["text"]).strip()[:6000]) for j in jobs]
-    (ROOT / "docs" / "jobs.json").write_text(json.dumps(dict(generated=now.isoformat(), jobs=out), ensure_ascii=False))
-    seen_p.write_text(json.dumps(sorted(seen | NEWSEEN | {j["url"] for j in jobs})))
-    (ROOT / "docs" / "status.json").write_text(json.dumps(dict(generated=now.isoformat(), failed=failed, skipped=skipped, counts={k: sum(1 for j in jobs if j["src"] == k) for k in sorted({j["src"] for j in jobs})})))
-    print(f"{len(jobs)} matches, {sum(j['new'] for j in jobs)} new, {len(failed)} boards failed")
+    tasks = [(kind, it) for kind, items in CFG.items() if kind in SOURCES for it in items]
+    jobs, failed, skipped = [], [], []
+    try:
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            for label, kind, out, err in ex.map(lambda t: run_one(t[0], t[1], now), tasks):
+                jobs += out
+                if err and err[0] == "skip": skipped.append(f"{label} ({kind}): {err[1]}")
+                elif err: failed.append(f"{label} ({kind})"); print("FAILED", label, kind, err[1])
+        jobs = list({j["url"]: j for j in jobs}.values())
+        for j in jobs: j["new"] = j["url"] not in seen
+        jobs.sort(key=lambda j: (-j["new"], -j["score"]))
+        out = [dict(id=hashlib.md5(j["url"].encode()).hexdigest()[:12], company=j["company"], title=j["title"], location=j["location"], regions=j["regions"],
+                    visa=j["visa"], url=j["url"], posted=j["posted"].isoformat(), src=j["src"], score=j["score"], matched=j["matched"], gaps=j["gaps"],
+                    yrs=j["yrs"], thin=j["thin"], new=j["new"], jd=re.sub(r"\s+", " ", j["text"]).strip()[:6000]) for j in jobs]
+        (ROOT / "docs" / "jobs.json").write_text(json.dumps(dict(generated=now.isoformat(), jobs=out), ensure_ascii=False), encoding="utf-8")
+        seen_p.write_text(json.dumps(sorted(seen | NEWSEEN | {j["url"] for j in jobs})))
+        (ROOT / "docs" / "status.json").write_text(json.dumps(dict(generated=now.isoformat(), failed=failed, skipped=skipped, counts={k: sum(1 for j in jobs if j["src"] == k) for k in sorted({j["src"] for j in jobs})})))
+        print(f"{len(jobs)} matches, {sum(j['new'] for j in jobs)} new, {len(failed)} boards failed")
+    except Exception as e:
+        traceback.print_exc()
+        (ROOT / "docs" / "status.json").write_text(json.dumps(dict(generated=now.isoformat(), error=repr(e)[:300], failed=failed, skipped=skipped, counts={})))
+        raise
 
 if __name__ == "__main__":
     main()
