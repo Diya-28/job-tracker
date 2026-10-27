@@ -8,17 +8,26 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: python fetch_jobs.py
+      - name: Collect jobs
+        run: python fetch_jobs.py
         env:
           ADZUNA_ID: ${{ secrets.ADZUNA_ID }}
           ADZUNA_KEY: ${{ secrets.ADZUNA_KEY }}
-      - run: |
+      - name: Publish results
+        if: always()
+        run: |
           git config user.name "jobwatch-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "Daily jobs $(date -u +%F)"
-          git push
+          if git diff --cached --quiet; then echo "No changes to publish"; exit 0; fi
+          git commit -m "Daily jobs $(date -u +%F)"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && exit 0
+            sleep 5
+          done
+          exit 1
