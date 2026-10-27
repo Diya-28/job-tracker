@@ -28,7 +28,14 @@
   "staff",
   "principal",
   "head of",
-  "manager"
+  "manager",
+  "designer",
+  "recruit",
+  "sales",
+  "customer success",
+  "marketing",
+  "accountant",
+  "paralegal"
  ],
  "score_keywords": {
   "rag": 3,
@@ -77,45 +84,27 @@
   "grafanalabs",
   "coinbase",
   "figma",
-  "snowflakecomputing",
-  "intuit",
-  "phonepe",
-  "razorpay",
-  "postman",
   "adyen",
   "wise",
   "n26",
   "celonis",
-  "grab",
   "hellofresh",
   "contentful",
   "getyourguide",
   "trivago",
-  "deliveryhero",
-  "zalando",
   "monzo",
-  "checkoutcom",
-  "bolt",
-  "mollie",
-  "miro",
-  "personio",
-  "sumup",
-  "taxfix"
+  "sumup"
  ],
  "lever": [
   "cred",
   "meesho",
-  "swiggy",
   "paytm",
-  "dream11",
   "freshworks",
   "zeta",
-  "groww",
   "mistral",
   "spotify",
   "palantir",
-  "wealthsimple",
-  "shopify"
+  "wealthsimple"
  ],
  "ashby": [
   "openai",
@@ -238,12 +227,13 @@
   "sponsorship available",
   "we sponsor",
   "will sponsor",
-  "relocation",
-  "relocate",
   "blue card",
-  "skilled worker",
   "work permit support",
-  "visa support"
+  "visa support",
+  "relocation package",
+  "relocation assistance",
+  "immigration assistance",
+  "immigration support"
  ],
  "visa_no": [
   "no sponsorship",
@@ -279,16 +269,6 @@
    "adobe.wd5.myworkdayjobs.com",
    "adobe",
    "external_experienced"
-  ],
-  [
-   "walmart.wd5.myworkdayjobs.com",
-   "walmart",
-   "WalmartExternal"
-  ],
-  [
-   "dell.wd1.myworkdayjobs.com",
-   "dell",
-   "External"
   ],
   [
    "paypal.wd1.myworkdayjobs.com",
