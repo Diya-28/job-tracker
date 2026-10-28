@@ -228,6 +228,46 @@ def from_adzuna(cc):
 
 SOURCES.update({"arbeitnow": from_arbeitnow, "adzuna": from_adzuna})
 
+def remote_loc(geo):
+    """Remote boards: 'worldwide / anywhere / APAC / Asia / India' roles can be done from India, so tag them as such."""
+    g = (", ".join(map(str, geo)) if isinstance(geo, list) else str(geo or "")).strip()
+    wide = (not g) or re.search(r"\b(worldwide|anywhere|global|apac|asia|india|any)\b", g, re.I)
+    return f"{g or 'Worldwide'} Remote" + (" India" if wide else "")
+
+def epoch(ts):
+    if isinstance(ts, (int, float)) and ts > 0:
+        return datetime.fromtimestamp(ts / 1000 if ts > 1e12 else ts, tz=timezone.utc)
+    return parse_iso(str(ts)) if ts else None
+
+def from_jobicy(term):
+    for p in get("https://jobicy.com/api/v2/remote-jobs?" + urllib.parse.urlencode({"count": 50, "tag": term})).get("jobs", []):
+        yield dict(company=p.get("companyName", ""), title=p.get("jobTitle", ""), location=remote_loc(p.get("jobGeo")), url=p.get("url", ""),
+                   posted=epoch(p.get("pubDate")), text=strip(p.get("jobDescription") or p.get("jobExcerpt")), src="jobicy")
+
+def from_himalayas(term):
+    d = get("https://himalayas.app/jobs/api/search?" + urllib.parse.urlencode({"q": term, "sort": "recent", "page": 1}))
+    for p in d.get("jobs", []):
+        yield dict(company=p.get("companyName", ""), title=p.get("title", ""), location=remote_loc(p.get("locationRestrictions") or []),
+                   url=p.get("applicationLink") or p.get("guid") or "", posted=epoch(p.get("pubDate")),
+                   text=strip(p.get("description") or p.get("excerpt")), src="himalayas")
+
+def from_remoteok(_slug):
+    d = get("https://remoteok.com/api")
+    for p in (d if isinstance(d, list) else []):
+        if not isinstance(p, dict) or not p.get("position"): continue
+        yield dict(company=p.get("company", ""), title=p.get("position", ""), location=remote_loc(p.get("location")),
+                   url=p.get("url") or ("https://remoteok.com/remote-jobs/" + str(p.get("slug", ""))), posted=epoch(p.get("epoch") or p.get("date")),
+                   text=strip(p.get("description")) + " " + " ".join(p.get("tags") or []), src="remoteok")
+
+def from_themuse(cat):
+    for page in (1, 2, 3):
+        for p in get("https://www.themuse.com/api/public/jobs?" + urllib.parse.urlencode({"page": page, "category": cat})).get("results", []):
+            yield dict(company=(p.get("company") or {}).get("name", ""), title=p.get("name", ""), location=", ".join((l or {}).get("name", "") for l in p.get("locations") or []),
+                       url=(p.get("refs") or {}).get("landing_page", ""), posted=epoch(p.get("publication_date")), text=strip(p.get("contents")), src="themuse")
+        time.sleep(0.2)
+
+SOURCES.update({"jobicy": from_jobicy, "himalayas": from_himalayas, "remoteok": from_remoteok, "themuse": from_themuse})
+
 def li(title, loc="India"): return "https://www.linkedin.com/jobs/search/?keywords=" + urllib.parse.quote(title) + "&location=" + urllib.parse.quote(loc) + "&f_TPR=r86400&sortBy=DD"
 
 def clean(j):
