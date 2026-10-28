@@ -1,10 +1,13 @@
 name: daily-jobs
 on:
   schedule:
-    - cron: "30 1 * * *"   # 07:00 IST every day
+    - cron: "7 * * * *"   # every hour at :07
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: jobwatch
+  cancel-in-progress: false
 jobs:
   run:
     runs-on: ubuntu-latest
