@@ -333,5 +333,22 @@
   "ca",
   "sg",
   "au"
+ ],
+ "jobicy": [
+  "machine learning",
+  "ai engineer"
+ ],
+ "himalayas": [
+  "machine learning",
+  "ai engineer",
+  "data scientist"
+ ],
+ "remoteok": [
+  "remoteok"
+ ],
+ "themuse": [
+  "Data Science",
+  "Data and Analytics",
+  "Software Engineering"
  ]
 }
