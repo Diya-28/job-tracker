@@ -28,7 +28,24 @@ textarea{width:100%;min-height:120px;font-family:ui-monospace,Menlo,Consolas,mon
 .rb.y{color:var(--ok);border-color:var(--ok)}.rb.n{color:var(--bad);border-color:var(--bad)}.rb.u{width:46px;height:46px;font-size:18px;align-self:center}
 .rowc{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:8px}.rowc .m{flex:1;min-width:0}.rowc .b{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .fl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--mut);margin:0 0 10px}.empty{text-align:center;padding:24px 10px}
-</style></head><body><main>
+body{font-size:15px;letter-spacing:.005em}
+main{padding-top:12px}
+h1{font-size:26px;letter-spacing:-.01em}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);flex-wrap:nowrap;overflow-x:auto;padding:8px 0;margin:6px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{white-space:nowrap;border-radius:999px;padding:8px 14px;font-weight:500}.tab .ti{margin-right:6px}
+.card{padding:18px;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.btn{min-height:38px;border-radius:10px;font-weight:500}.btn.sm{min-height:30px}.btn[disabled]{opacity:.55;cursor:default}
+input,select,textarea{border-radius:10px;padding:9px 11px}
+#note{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:30;max-width:720px;margin:0 auto;top:auto}
+#note .card{margin:0;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.callout{background:var(--acc2);border-radius:12px;padding:14px;margin:10px 0}.warnbox{border-left:4px solid var(--warn)}
+.drop{display:block;border:2px dashed var(--line);border-radius:14px;padding:24px 14px;text-align:center;cursor:pointer;margin:12px 0}
+.drop:hover,.drop.over{border-color:var(--acc);background:var(--acc2)}
+.cmp{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.cmpi{text-align:center}.cmp .arrow{font-size:24px;color:var(--mut)}
+details summary{margin:8px 0}
+td,th{padding:10px 6px}
+.livebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--mut);margin:0 0 10px}.ldot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;animation:pulse 2s infinite}@keyframes pulse{50%{opacity:.3}}</style></head><body><main>
 <h1>Diya’s Job Applicator</h1><div class="mut">Swipe jobs, track applications, tailor your resume, and watch your inbox for replies.</div>
 <div id="note"></div><div class="tabs" id="tabs"></div><div id="view"></div>
 </main><script>(function(){
@@ -78,12 +95,12 @@ textarea{width:100%;min-height:120px;font-family:ui-monospace,Menlo,Consolas,mon
 })();
 </script><script>
 var ST=["Saved","Referral asked","Applied","Screening","Interview","Offer","Rejected","Ghosted"];
-var TABS=[["find","Find jobs"],["swipe","Swipe"],["feed","All jobs"],["saved","Saved"],["applied","Applied"],["mail","Email tracker"],["tailor","Tailor resume"],["add","Add job"],["setup","Master resume"]];
+var TABS=[["find","Find jobs","🔎"],["swipe","Swipe","🃏"],["feed","All jobs","📋"],["saved","Saved","💾"],["applied","Applied","✅"],["mail","Email tracker","✉️"],["tailor","Tailor resume","✨"],["add","Add job","➕"],["setup","Master resume","📄"]];
 var S={apps:{},resume:"",col:null,sample:null,mcp:null,dl:null,sel:null,tab:"find",fj:{roles:["AI Engineer","GenAI Engineer","Machine Learning Engineer"],loc:"Bengaluru",exp:"4",visa:false},inbox:[],jobs:[],dec:{},hist:[],gen:"",jobCol:null,F:{reg:"all",min:0,visa:false,nw:false,show:"unseen"},_sc:{},f:"All",q:"",busy:false,tail:null,scan:{}};
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function dec(s){var t=document.createElement("textarea");t.innerHTML=s||"";return t.value}
-function note(m,cls){$("note").innerHTML=m?"<div class='card "+(cls||"")+"'>"+esc(m)+"</div>":""}
+function note(m,cls){clearTimeout(note.t);$("note").innerHTML=m?"<div class='card "+(cls||"")+"'>"+esc(m)+"</div>":"";if(m&&cls!=="err"&&!/…$/.test(m))note.t=setTimeout(function(){$("note").innerHTML=""},8000)}
 function day(ts){return ts?new Date(ts).toLocaleDateString("en-IN",{day:"numeric",month:"short"}):""}
 function put(id,o){o.updated=Date.now();S.apps[id]=o;render();if(S.col){S.col.doc(id).set(o).catch(function(e){note("Could not save: "+(e&&e.code||e),"err")})}}
 function upd(id,p){var o=Object.assign({},S.apps[id],p);put(id,o)}
@@ -96,10 +113,13 @@ var SK=[["Python",2,1,"python"],["SQL",2,1,"sql|bigquery|postgres(?:ql)?"],["LLM
 var RX={};SK.forEach(function(s){RX[s[0]]=new RegExp("(?<![a-z0-9+#])(?:"+s[3]+")(?![a-z0-9+#])","i")});
 var CORE=/\b(ai|ml|machine learning|genai|gen ai|llm|data scientist|applied scientist|nlp|mlops)\b/i;
 function haveSet(){if(S._hvR===S.resume&&S._hv)return S._hv;var h={},use=S.resume&&S.resume.length>200;SK.forEach(function(s){h[s[0]]=use?RX[s[0]].test(S.resume):!!s[2]});S._hv=h;S._hvR=S.resume;S._sc={};return h}
-function scoreJob(title,text){var hv=haveSet(),key=title+"|"+(text||"").length;if(S._sc[key])return S._sc[key];var blob=title+" \n "+(text||""),tot=0,got=0,m=[],g=[];
+function scoreCore(title,text,hv){var blob=title+" \n "+(text||""),tot=0,got=0,m=[],g=[];
  SK.forEach(function(s){if(RX[s[0]].test(blob)){tot+=s[1];if(hv[s[0]]){got+=s[1];m.push(s[0])}else g.push(s[0])}});
  var ys=(blob.toLowerCase().match(/(\d{1,2})\s*\+?\s*(?:-\s*\d+\s*)?years?/g)||[]).map(function(x){return parseInt(x,10)}).filter(function(n){return n<=20}),yrs=ys.length?Math.max.apply(null,ys):null,thin=tot<6,core=CORE.test(title)?(thin?10:5):0,b=thin?40+core:50+(100*got/tot-50)*Math.min(1,tot/14)+core;
- if(yrs>=7)b-=15;else if(yrs>=6)b-=8;var r={score:Math.max(0,Math.min(99,Math.round(b))),matched:m.sort(),gaps:g.sort(),yrs:yrs,thin:thin};S._sc[key]=r;return r}
+ if(yrs>=7)b-=15;else if(yrs>=6)b-=8;return {score:Math.max(0,Math.min(99,Math.round(b))),matched:m.sort(),gaps:g.sort(),yrs:yrs,thin:thin}}
+function hvOf(txt){var h={},use=txt&&txt.length>200;SK.forEach(function(s){h[s[0]]=use?RX[s[0]].test(txt):!!s[2]});return h}
+function scoreAgainst(txt,title,jd){return scoreCore(title,jd,hvOf(txt))}
+function scoreJob(title,text){var hv=haveSet(),key=title+"|"+(text||"").length;if(S._sc[key])return S._sc[key];var r=scoreCore(title,text,hv);S._sc[key]=r;return r}
 function col(s){return s>=75?"var(--ok)":s>=50?"var(--warn)":"var(--bad)"}
 function ring(s,sm){return "<div class='ring"+(sm?" s":"")+"' style='--p:"+s+";--c:"+col(s)+"'><b>"+s+"</b></div>"}
 function chipsHtml(r){return r.matched.map(function(x){return "<span class='chip g'>✓ "+esc(x)+"</span>"}).join("")+r.gaps.map(function(x){return "<span class='chip a'>– "+esc(x)+"</span>"}).join("")}
@@ -107,7 +127,7 @@ function scChip(a){var r=scoreJob(a.role||"",a.jd||"");return " <span class='chi
 function scBlock(a){if(!a.jd)return "";var r=scoreJob(a.role||"",a.jd);return "<div style='margin:8px 0'><b>Match "+r.score+"/100</b>"+(r.thin?" <span class='mut'>(short description, rough estimate)</span>":"")+(r.yrs?" <span class='mut'>· asks "+r.yrs+"+ yrs</span>":"")+"<div>"+chipsHtml(r)+"</div></div>"}
 function skillsNote(){var hv=haveSet(),l=SK.filter(function(s){return hv[s[0]]}).map(function(s){return s[0]});return "<p class='mut'>"+(S.resume&&S.resume.length>200?"Skills found in your resume (used for match scores): ":"No resume saved yet, so match scores use a default skill list: ")+esc(l.join(", "))+".</p>"}
 function ago(iso){var h=Math.max(0,(Date.now()-Date.parse(iso))/36e5);return isNaN(h)?"":h<1?"just now":h<24?Math.round(h)+"h ago":Math.round(h/24)+"d ago"}
-function jmeta(j){return esc(j.company)+" · "+esc(j.location||"")+(j.posted?" · "+ago(j.posted):"")+(j.new?" · <b>new</b>":"")+(j.visa==="yes"?" · visa/relocation":"")+(j.visa==="no"?" · no sponsorship":"")}
+function jmeta(j){return esc(j.company)+" · "+esc(j.location||"")+(j.posted?" · "+ago(j.posted):"")+(S.fresh&&S.fresh[j.id]?" · <b>🆕 new for you</b>":(j.new?" · <b>new</b>":""))+(j.src&&["himalayas","remoteok","jobicy","themuse","arbeitnow","adzuna"].indexOf(j.src)>-1?" · via "+esc(j.src):"")+(j.visa==="yes"?" · visa/relocation":"")+(j.visa==="no"?" · no sponsorship":"")}
 function scored(){if(S._jsFor===S.jobs&&S._jsR===S.resume&&S._js)return S._js;haveSet();S._js=S.jobs.map(function(j){var r=scoreJob(j.title,j.jd||"");return Object.assign({},j,{score:r.score,matched:r.matched,gaps:r.gaps,yrs:r.yrs,thin:r.thin})});S._jsFor=S.jobs;S._jsR=S.resume;return S._js}
 function pool(){return scored().filter(function(j){return (S.F.reg==="all"||(j.regions||[]).indexOf(S.F.reg)>-1)&&j.score>=S.F.min&&(!S.F.visa||j.visa==="yes")&&(!S.F.nw||j.new)}).sort(function(a,b){return b.score-a.score})}
 function saveState(){if(S.col)S.col.doc("state").set({dec:S.dec,gen:S.gen||""}).catch(function(e){note("Could not save swipes: "+(e&&e.code||e),"err")})}
@@ -128,14 +148,16 @@ async function importJobs(txt){var d;try{d=JSON.parse(txt)}catch(e){note("That i
   S.tab="swipe";note("Loaded "+jobs.length+" jobs.","ok")}catch(e){note("Import failed: "+(e&&e.code||e),"err")}
  S.busy=false;render()}
 function demoJobs(){var n=new Date().toISOString();S.jobs=[{id:"d1",company:"Demo Co (sample)",title:"Senior AI Engineer",location:"Bengaluru, India",regions:["India"],visa:"?",url:"",posted:n,new:true,jd:"SAMPLE DATA. Build RAG pipelines and LLM agents with LangChain, Python and GCP. 4+ years."},{id:"d2",company:"Sample Labs (sample)",title:"ML Engineer",location:"Berlin, Germany",regions:["Germany"],visa:"yes",url:"",posted:n,new:true,jd:"SAMPLE DATA. Java, Scala and Kafka services plus some Python. 8+ years. Visa sponsorship offered."}];S.gen=n;S.tab="swipe";render()}
-function vSwipe(){
+function vSwipe(){return liveBar()+vSwipe0()}
+function vSwipe0(){
  if(!S.jobs.length)return "<div class='card empty'><p><b>No jobs loaded yet.</b></p><p class='mut'>Import your daily jobs.json to start swiping.</p></div>"+importBox();
  var q=pool().filter(function(j){return !S.dec[j.id]}),h=filters();
  if(!q.length)return h+"<div class='card empty'><p><b>You’re all caught up.</b></p><p class='mut'>Loosen the filters, check the Tracker, or import tomorrow’s jobs.</p></div>"+(S.hist.length?"<div class='acts'><button class='rb u' id='un'>↩</button></div>":"");
  var j=q[0],r=j;return h+"<div id='stack'><div class='card sw' id='cd' data-id='"+esc(j.id)+"'><div class='stamp sy' id='sy'>INTERESTED</div><div class='stamp sn' id='sn'>SKIP</div><div class='top'>"+ring(j.score)+"<div><h2>"+esc(j.title)+"</h2><div class='mut'>"+jmeta(j)+"</div></div></div><div style='margin-top:10px'>"+chipsHtml(r)+"</div>"+(j.thin?"<div class='mut'>Short description, so the match is a rough estimate.</div>":"")+(j.yrs?"<div class='mut'>Asks for "+j.yrs+"+ years of experience.</div>":"")+"<div class='jd'>"+esc((j.jd||"").slice(0,420))+((j.jd||"").length>420?"…":"")+"</div><details><summary>Read full description</summary><div class='jd'>"+esc(j.jd||"")+"</div></details></div></div><div class='acts'><button class='rb n' id='bn'>✕</button><button class='rb u' id='un'>↩</button><button class='rb y' id='by'>♥</button></div><div class='mut' style='text-align:center;margin-top:8px'>Swipe right to add to your tracker, left to skip · ← → keys · "+q.length+" left</div>"}
 function filters(){var regs=["all"].concat(Object.keys(scored().reduce(function(o,j){(j.regions||[]).forEach(function(r){o[r]=1});return o},{})).sort());
  return "<div class='fl'><select id='jr'>"+regs.map(function(r){return "<option value='"+esc(r)+"'"+(S.F.reg===r?" selected":"")+">"+(r==="all"?"All regions":esc(r))+"</option>"}).join("")+"</select><label>Min match <input type='range' id='jm' min='0' max='90' step='10' value='"+S.F.min+"'> "+S.F.min+"</label><label><input type='checkbox' id='jv'"+(S.F.visa?" checked":"")+"> Visa/relocation</label><label><input type='checkbox' id='jn'"+(S.F.nw?" checked":"")+"> New only</label></div>"}
-function vFeed(){
+function vFeed(){return liveBar()+vFeed0()}
+function vFeed0(){
  var p=pool().filter(function(j){var d=S.dec[j.id];return S.F.show==="all"||(S.F.show==="unseen"&&!d)||(S.F.show==="kept"&&d==="y")||(S.F.show==="skipped"&&d==="n")});
  var sh="<div class='fl'><select id='js'>"+[["unseen","Unseen"],["kept","Kept"],["skipped","Skipped"],["all","All"]].map(function(o){return "<option value='"+o[0]+"'"+(S.F.show===o[0]?" selected":"")+">"+o[1]+"</option>"}).join("")+"</select><span>"+S.jobs.length+" jobs"+(S.gen?" · loaded "+esc(ago(S.gen)):"")+"</span></div>";
  var rows=p.map(function(j){var d=S.dec[j.id];return "<div class='rowc'>"+ring(j.score,1)+"<div class='m'><div><b>"+esc(j.title)+"</b></div><div class='mut'>"+jmeta(j)+"</div><div>"+chipsHtml(j)+"</div></div><div class='b'>"+(j.url?"<a class='btn sm' href='"+esc(j.url)+"' target='_blank' rel='noopener'>Open</a>":"")+"<button class='btn sm"+(d==="y"?" pri":"")+"' data-jd='y|"+esc(j.id)+"'>♥</button><button class='btn sm"+(d==="n"?" pri":"")+"' data-jd='n|"+esc(j.id)+"'>✕</button></div></div>"}).join("");
@@ -201,16 +223,103 @@ function bindFind(){
  if($("fx"))$("fx").onchange=function(){S.fj.exp=$("fx").value;render()};if($("fz"))$("fz").onchange=function(){S.fj.visa=$("fz").checked;render()};
  if($("ibx"))$("ibx").onclick=inboxScan;
  each("[data-ib]",function(b){b.onclick=function(){var p=b.dataset.ib.split("|"),m=S.inbox[+p[1]],a=matchApp(m.company);if(p[0]==="set"&&a)upd(a,{status:m.sug});else if(p[0]==="add")put(newId(),{company:m.company,role:m.role||"",location:"",url:"",status:m.sug||"Applied",jd:"",notes:"Added from email: "+m.subject,applied:new Date(Date.parse(m.date)||Date.now()).toISOString().slice(0,10),emails:[],tailored:""})}})}
-async function loadFeed(){
- try{var r=await fetch(window.JOBS_URL||"jobs.json",{cache:"no-store"});if(!r.ok)throw 0;var d=await r.json(),arr=Array.isArray(d)?d:d.jobs;
-  S.jobs=(arr||[]).filter(function(j){return j&&j.id&&j.title}).map(function(j){return {id:String(j.id),company:j.company||"",title:j.title,location:j.location||"",regions:j.regions||[],visa:j.visa||"?",url:j.url||"",posted:j.posted||"",src:j.src||"",new:!!j.new,jd:String(j.jd||"").slice(0,5000)}});
-  S.gen=d.generated||"";S._js=null;if(!S.tabSet){S.tabSet=1;if(S.jobs.length)S.tab="swipe"}}
- catch(e){note("Couldn’t load jobs.json from this site yet. Run the daily workflow once, or load a file in the All jobs tab.","warn")}}
+function banner(){if(S.resume||S.tab==="setup")return "";return "<div class='callout'><b>📄 Add your resume</b><div class='mut'>Upload it once. Match scores will then use your real skills, and you can tailor it to any job.</div><div class='row' style='margin-top:8px'><button class='btn pri' data-go='setup'>Upload resume</button></div></div>"}
+function vSetup(){var n=S.resume?S.resume.length:0;
+ return "<div class='card'><h2>📄 Your master resume</h2><p class='mut'>Upload your resume (PDF, Word or text). It becomes the base for every tailored version. Keep your full, true resume here; tailoring never changes it.</p><label class='drop' id='drop' for='rf'><div style='font-size:30px'>⬆️</div><b>Choose a file</b> or drag it here<div class='mut'>PDF, DOCX, TXT or MD</div></label><input type='file' id='rf' accept='.pdf,.docx,.txt,.md' style='display:none'><div id='rstat' class='mut' style='min-height:20px'></div><label>Resume text: check it reads correctly, fix anything odd, then save</label><textarea id='mres' style='min-height:340px'>"+esc(S.resume)+"</textarea><div class='row' style='margin-top:8px'><button class='btn pri' id='msave'>Save master resume</button><span class='mut'>"+(n?n+" characters saved":"Nothing saved yet")+"</span></div></div><div class='card'><h2>Skills found in your resume</h2>"+skillsNote()+"<p class='mut'>These drive every match score. If a skill you really have is missing, add it to the resume text in the words a job would use.</p></div>"+(typeof settingsCard==="function"?settingsCard():"")}
+function loadLib(g,url){return new Promise(function(res,rej){if(window[g])return res();var s=document.createElement("script");s.src=url;s.onload=function(){res()};s.onerror=function(){rej(new Error("Couldn’t load the file reader. Check your connection, or paste your resume text instead."))};document.head.appendChild(s)})}
+function readAs(f,how){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=function(){rej(new Error("Couldn’t read that file."))};how==="text"?r.readAsText(f):r.readAsArrayBuffer(f)})}
+async function readResumeFile(f){var st=$("rstat"),n=(f.name||"").toLowerCase(),t="";if(st)st.innerHTML="Reading "+esc(f.name)+"…";
+ try{
+  if(/\.(txt|md)$/.test(n))t=await readAs(f,"text");
+  else if(/\.docx$/.test(n)){await loadLib("mammoth","https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");t=(await mammoth.extractRawText({arrayBuffer:await readAs(f,"buf")})).value}
+  else if(/\.pdf$/.test(n)){await loadLib("pdfjsLib","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+   var pdf=await pdfjsLib.getDocument({data:new Uint8Array(await readAs(f,"buf"))}).promise;
+   for(var p=1;p<=pdf.numPages;p++){var c=await (await pdf.getPage(p)).getTextContent(),y=null,line="";c.items.forEach(function(it){var yy=Math.round(it.transform[5]);if(y!==null&&Math.abs(yy-y)>2){t+=line.trim()+"\n";line=""}y=yy;line+=it.str+(it.hasEOL?"\n":" ")});t+=line.trim()+"\n\n"}}
+  else throw new Error("Please choose a PDF, DOCX or TXT file.");
+  t=t.replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+  if(t.length<150)throw new Error("I couldn’t find text in that file (scanned PDFs are pictures). Paste your resume text below instead.");
+  $("mres").value=t;if(st)st.innerHTML="<span class='ok'>Read "+t.length+" characters from "+esc(f.name)+". Check the text below, then press Save.</span>"}
+ catch(e){if(st)st.innerHTML="<span class='err'>"+esc(e.message||"Couldn’t read that file.")+"</span>"}}
+function vTailor(){
+ var h="<div class='card'><h2>✨ Tailor your resume</h2><p class='mut'>Claude rewrites your master resume for one job using only what’s already in it, then shows how the match changes. Review every line before you send it.</p>";
+ if(!S.resume)return h+"<div class='callout'><b>First, add your resume.</b><div class='row' style='margin-top:8px'><button class='btn pri' data-go='setup'>Upload resume</button></div></div></div>";
+ var ids=Object.keys(S.apps).filter(function(i){return S.apps[i].jd&&S.apps[i].jd.length>80});
+ if(!ids.length)return h+"<div class='callout'>Save a job with its description first: swipe right on a job, or use the Add job tab.</div></div>";
+ var cur=ids.indexOf(S.sel)>-1?S.sel:ids[0];S.sel=cur;var a=S.apps[cur],pend=ids.filter(function(i){var x=S.apps[i];return ["Saved","Referral asked"].indexOf(x.status)>-1&&!x.tailored}).length;
+ h+="<div class='row'><select id='tsel' style='flex:1;min-width:220px'>"+ids.map(function(i){return "<option value='"+i+"'"+(i===cur?" selected":"")+">"+esc(S.apps[i].company+" · "+S.apps[i].role)+(S.apps[i].tailored?" ✓":"")+"</option>"}).join("")+"</select><button class='btn pri' id='tgo'"+(S.busy?" disabled":"")+">"+(S.busy?"Working…":(a.tailored?"Tailor again":"Tailor this job"))+"</button></div>";
+ h+="<div class='row'><button class='btn' id='tall'"+(S.busy||!pend?" disabled":"")+">Tailor all saved jobs ("+pend+" waiting)</button><span class='mut'>Up to 8 per run. Each uses your Claude quota or API key.</span></div></div>";
+ var t=S.tail&&S.tail.id===cur?S.tail:null,txt=t?t.res:a.tailored;if(!txt)return h;
+ var bf=t?t.before:scoreAgainst(S.resume,a.role||"",a.jd||""),af=t?t.after:scoreAgainst(txt,a.role||"",a.jd||""),added=t?t.added:(a.tailAdded||[]),d=af.score-bf.score;
+ h+="<div class='card'><div class='cmp'><div class='cmpi'>"+ring(bf.score)+"<div class='mut'>Master resume</div></div><div class='arrow'>→</div><div class='cmpi'>"+ring(af.score)+"<div class='mut'>Tailored</div></div><div style='flex:1;min-width:200px'><b>"+(d>0?"+"+d+" points":d===0?"No change":"Down "+(-d)+" points")+"</b><div class='mut'>"+(d>0?"The job’s wording now appears where your experience already shows it.":"Your resume already covers what you honestly have for this job. The gaps below are skills it doesn’t show.")+"</div></div></div>";
+ h+="<div style='margin-top:10px'>"+chipsHtml(af)+"</div>";
+ if(added.length)h+="<div class='callout warnbox'><b>Check before sending:</b> the tailored text mentions "+added.map(function(x){return "<span class='chip a'>"+esc(x)+"</span>"}).join("")+" which your master resume doesn’t. Delete any that aren’t true.</div>";
+ var ch=(t&&t.changes)||a.tailChanges||[];if(ch.length)h+="<details><summary>What changed</summary><ul class='mut'>"+ch.map(function(c){return "<li>"+esc(c)+"</li>"}).join("")+"</ul></details>";
+ var cov=(t&&t.cover)||a.tailCover||"";
+ h+="<label>Tailored resume (editable)</label><textarea id='tres' style='min-height:360px'>"+esc(txt)+"</textarea>"+(cov?"<label>Short note for the recruiter</label><textarea id='tcov' style='min-height:90px'>"+esc(cov)+"</textarea>":"")+"<div class='row' style='margin-top:8px'><button class='btn pri' id='tsave'>Save changes</button><button class='btn' id='tcopy'>Copy</button>"+(S.dl?"<button class='btn' id='tword'>Download Word</button>":"")+"<button class='btn' id='tpdf'>Print / Save as PDF</button></div></div>";
+ return h}
+async function tailCore(id){var a=S.apps[id],b=scoreAgainst(S.resume,a.role||"",a.jd||"");
+ var p="You tailor a resume to one job. STRICT RULES:\n1. Use only facts that appear in MASTER RESUME. Never invent employers, titles, dates, numbers, tools, skills or responsibilities.\n2. You may reorder, shorten, merge and reword. Where the master resume already shows a skill, describe it in the job description’s own wording (for example call “multi-agent orchestration” “agents”), and put the skills the job cares about most first.\n3. The skills listed under LACKS are not in the master resume. Do not mention them anywhere.\n4. Keep one page of plain markdown with the same sections as the master, and keep contact details exactly as in the master.\nReturn JSON only: {\"resume\":\"the full tailored resume\",\"changes\":[\"up to 6 short notes on what you emphasised or reworded\"],\"cover\":\"3-4 sentence note to the recruiter\"}\n\nJOB: "+a.role+" at "+a.company+"\nSKILLS THE JOB WANTS THAT THE CANDIDATE HAS: "+(b.matched.join(", ")||"none detected")+"\nLACKS: "+(b.gaps.join(", ")||"none")+"\n\nJOB DESCRIPTION:\n"+a.jd.slice(0,9000)+"\n\nMASTER RESUME:\n"+S.resume.slice(0,9000);
+ var r=await S.sample.json(p,{modelTier:"complex",cache:false}),txt=String(r&&r.resume||"");
+ if(txt.length<200){var e=new Error("Claude returned an empty resume.");e.code="error";throw e}
+ var af=scoreAgainst(txt,a.role||"",a.jd||""),added=SK.filter(function(s){return RX[s[0]].test(txt)&&!RX[s[0]].test(S.resume)}).map(function(s){return s[0]});
+ return {id:id,res:txt,cover:r.cover||"",changes:r.changes||[],before:b,after:af,added:added}}
+function saveTail(id,t){upd(id,{tailored:t.res,tailBefore:t.before.score,tailAfter:t.after.score,tailAdded:t.added,tailCover:t.cover,tailChanges:t.changes})}
+async function tailor(id){var a=S.apps[id];if(!S.sample){note("Claude isn’t available in this view.","warn");return}
+ if(!S.resume){note("Upload your master resume first.","warn");S.tab="setup";render();return}
+ if(!a.jd||a.jd.length<80){note("Add the job description to this application first.","warn");return}
+ S.busy=true;S.sel=id;S.tab="tailor";note("Tailoring… this takes up to a minute.");render();
+ try{S.tail=await tailCore(id);saveTail(id,S.tail);note("Tailored. Review it below, then save or download.","ok")}catch(e){note(sErr(e),"err")}
+ S.busy=false;render()}
+async function tailorAll(){if(!S.sample||!S.resume){note("Add your resume (and Claude access) first.","warn");return}
+ var ids=Object.keys(S.apps).filter(function(i){var a=S.apps[i];return ["Saved","Referral asked"].indexOf(a.status)>-1&&a.jd&&a.jd.length>80&&!a.tailored}).slice(0,8);
+ if(!ids.length){note("Every saved job with a description already has a tailored resume.","warn");return}
+ S.busy=true;render();var done=0,bs=0,as=0;
+ for(var k=0;k<ids.length;k++){note("Tailoring "+(k+1)+" of "+ids.length+"…");try{var t=await tailCore(ids[k]);saveTail(ids[k],t);done++;bs+=t.before.score;as+=t.after.score}catch(e){note(sErr(e),"err");break}}
+ S.busy=false;if(done)note("Tailored "+done+" job"+(done>1?"s":"")+". Average match "+Math.round(bs/done)+" → "+Math.round(as/done)+". Review each one before you send it.","ok");render()}
+function mdHtml(t){var h="",ul=false;function inl(x){return esc(x).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}
+ t.split("\n").forEach(function(l){var s=l.trim();if(/^[-*•]\s+/.test(s)){if(!ul){h+="<ul>";ul=true}h+="<li>"+inl(s.replace(/^[-*•]\s+/,""))+"</li>";return}
+  if(ul){h+="</ul>";ul=false}if(/^#{1,2}\s+/.test(s))h+="<h2>"+inl(s.replace(/^#+\s+/,""))+"</h2>";else if(/^#{3,}\s+/.test(s))h+="<h3>"+inl(s.replace(/^#+\s+/,""))+"</h3>";else if(s)h+="<p>"+inl(s)+"</p>"});
+ return h+(ul?"</ul>":"")}
+function resumeDoc(t,title){return "<!DOCTYPE html><html><head><meta charset='utf-8'><title>"+esc(title)+"</title><style>body{font:11pt/1.35 Calibri,Arial,sans-serif;margin:.6in;color:#111}h2{font-size:12.5pt;border-bottom:1px solid #999;margin:14px 0 4px;text-transform:uppercase;letter-spacing:.03em}h3{font-size:11pt;margin:8px 0 2px}p{margin:2px 0}ul{margin:2px 0 4px 18px;padding:0}li{margin:1px 0}</style></head><body>"+mdHtml(t)+"</body></html>"}
+function bindResume(){
+ each("[data-go]",function(b){b.onclick=function(){S.tab=b.dataset.go;render()}});
+ if($("rf"))$("rf").onchange=function(){if($("rf").files[0])readResumeFile($("rf").files[0])};
+ var dr=$("drop");if(dr){["dragenter","dragover"].forEach(function(ev){dr.addEventListener(ev,function(e){e.preventDefault();dr.classList.add("over")})});["dragleave","drop"].forEach(function(ev){dr.addEventListener(ev,function(e){e.preventDefault();dr.classList.remove("over")})});dr.addEventListener("drop",function(e){var f=e.dataTransfer&&e.dataTransfer.files[0];if(f)readResumeFile(f)})}
+ if($("tgo"))$("tgo").onclick=function(){tailor($("tsel").value)};
+ if($("tall"))$("tall").onclick=tailorAll;
+ if($("tsel"))$("tsel").onchange=function(){S.sel=$("tsel").value;S.tail=null;render()};
+ if($("tsave"))$("tsave").onclick=function(){var p={tailored:$("tres").value};if($("tcov"))p.tailCover=$("tcov").value;upd(S.sel,p);note("Saved to the application.","ok")};
+ if($("tcopy"))$("tcopy").onclick=function(){var t=$("tres");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(_){}}this.textContent="Copied ✓"};
+ if($("tword"))$("tword").onclick=function(){var a=S.apps[S.sel];S.dl.save({filename:("Resume_"+(a.company||"job")).replace(/[^\w]+/g,"_")+".doc",data:new Blob([resumeDoc($("tres").value,"Resume")],{type:"application/msword"})}).catch(function(e){if(e&&e.code!=="declined")note("Download failed.","err")})};
+ if($("tpdf"))$("tpdf").onclick=function(){var w=window.open("","_blank");if(!w){note("Your browser blocked the print window. Use Download Word instead.","warn");return}w.document.write(resumeDoc($("tres").value,"Resume"));w.document.close();setTimeout(function(){try{w.focus();w.print()}catch(e){}},400)}}
+var LIVE={last:0,alerts:false};
+function seenSet(){try{return JSON.parse(localStorage.getItem("jw_seen")||"null")}catch(e){return null}}
+function relAgo(iso){var m=Math.round((Date.now()-Date.parse(iso))/60000);return isNaN(m)?"recently":m<2?"just now":m<60?m+" min ago":m<1440?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"}
+async function loadFeed(poll){
+ try{var u=window.JOBS_URL||"jobs.json";u+=(u.indexOf("?")>-1?"&":"?")+"t="+Date.now();var r=await fetch(u,{cache:"no-store"});if(!r.ok)throw 0;var d=await r.json(),arr=Array.isArray(d)?d:d.jobs;
+  var prev=seenSet(),list=(arr||[]).filter(function(j){return j&&j.id&&j.title}).map(function(j){return {id:String(j.id),company:j.company||"",title:j.title,location:j.location||"",regions:j.regions||[],visa:j.visa||"?",url:j.url||"",posted:j.posted||"",src:j.src||"",new:!!j.new,jd:String(j.jd||"").slice(0,5000)}});
+  var fresh=poll?(S.fresh||{}):{},nf=[];if(prev){var ps={};prev.forEach(function(i){ps[i]=1});list.forEach(function(j){if(!ps[j.id]){fresh[j.id]=1;nf.push(j.id)}})}
+  S.fresh=fresh;S.jobs=list;S.gen=d.generated||"";S._js=null;LIVE.last=Date.now();
+  var all={};(prev||[]).concat(list.map(function(j){return j.id})).forEach(function(i){all[i]=1});try{localStorage.setItem("jw_seen",JSON.stringify(Object.keys(all).slice(-3000)))}catch(e){}
+  if(!S.tabSet){S.tabSet=1;if(list.length)S.tab="swipe"}
+  if(poll&&nf.length)alertNew(nf)}
+ catch(e){if(!poll)note("Couldn’t load jobs.json from this site yet. Run the workflow once, or load a file in the All jobs tab.","warn")}}
+function alertNew(ids){var set={};ids.forEach(function(i){set[i]=1});var top=scored().filter(function(j){return set[j.id]&&!S.dec[j.id]}).sort(function(a,b){return b.score-a.score});if(!top.length)return;
+ note(top.length+" new job"+(top.length>1?"s":"")+". Best match "+top[0].score+": "+top[0].title+" at "+top[0].company,"ok");
+ if(LIVE.alerts&&"Notification" in window&&Notification.permission==="granted")top.filter(function(j){return j.score>=70}).slice(0,3).forEach(function(j){try{new Notification("New job: "+j.title,{body:j.company+" · "+j.score+"% match"})}catch(e){}})}
+function startLive(){try{LIVE.alerts=localStorage.getItem("jw_alerts")==="1"||("Notification" in window&&Notification.permission==="granted")}catch(e){}
+ var tick=function(){if(document.hidden)return;loadFeed(true).then(function(){if(["swipe","feed"].indexOf(S.tab)>-1&&!document.querySelector(".sw.drag"))render()})};
+ setInterval(tick,300000);document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-LIVE.last>300000)tick()})}
+function liveBar(){if(!window.__standalone)return "";var nf=S.fresh?Object.keys(S.fresh).filter(function(i){return !S.dec[i]}).length:0,al="Notification" in window,srcs={};S.jobs.forEach(function(j){srcs[j.src]=1});
+ var attr=["himalayas","remoteok","jobicy","themuse","arbeitnow","adzuna"].filter(function(k){return srcs[k]});
+ return "<div class='livebar'><span class='ldot'></span><b>Live</b> · jobs updated "+relAgo(S.gen)+(nf?" · <b>"+nf+" new for you</b>":"")+" <button class='btn sm' id='lrf'>↻ Refresh</button>"+(al&&Notification.permission!=="granted"?" <button class='btn sm' id='lal'>🔔 Alerts</button>":(al&&LIVE.alerts?" <span>🔔 alerts on</span>":""))+"</div>"+(attr.length?"<div class='mut' style='font-size:12px;margin:-4px 0 10px'>Includes listings from "+attr.join(", ")+". Every card links back to the original posting.</div>":"")}
 function settingsCard(){if(!window.__standalone)return "";var c=window.__cfg();
  return "<div class='card'><h2>Settings (stored in this browser only)</h2><p class='mut'>Resume tailoring and email scanning run from your browser using your own keys. Use an Anthropic key with a spend limit, and don’t enter keys on a shared computer.</p><label>Anthropic API key (tailoring and email classification)</label><input id='sk' type='password' placeholder='"+(c.apiKey?"saved ("+esc(c.apiKey.slice(0,8))+"…) – paste a new one to replace":"sk-ant-…")+"' style='width:100%'><label>Google OAuth client ID (Gmail scanning, read-only)</label><input id='sg' placeholder='"+(c.googleClientId?"saved – paste a new one to replace":"1234567890-abc.apps.googleusercontent.com")+"' style='width:100%'><div class='row' style='margin-top:8px'><button class='btn pri' id='ssave'>Save settings</button><button class='btn' id='sclr'>Clear keys</button></div></div>"}
 function bindSettings(){
  if($("ssave"))$("ssave").onclick=function(){var k=$("sk").value.trim(),g=$("sg").value.trim(),c=window.__cfg();if(k)c.apiKey=k;if(g)c.googleClientId=g;window.__setCfg(c);if(g&&window.__loadGsi)window.__loadGsi().catch(function(){});note("Settings saved in this browser.","ok");render()};
- if($("sclr"))$("sclr").onclick=function(){window.__setCfg({});note("Keys cleared from this browser.","ok");render()}}
+ if($("sclr"))$("sclr").onclick=function(){window.__setCfg({});note("Keys cleared from this browser.","ok");render()};
+ if($("lrf"))$("lrf").onclick=function(){this.textContent="Refreshing…";loadFeed(true).then(render)};
+ if($("lal"))$("lal").onclick=function(){if(!("Notification" in window)){note("This browser doesn’t support alerts.","warn");return}Notification.requestPermission().then(function(p){if(p==="granted"){LIVE.alerts=true;try{localStorage.setItem("jw_alerts","1")}catch(e){}note("Alerts are on while this page stays open.","ok")}render()})}}
 async function init(){
  if(typeof claude==="undefined"){note("This page needs a modern browser with storage enabled.","warn");render();return}
  try{var user=await claude.use("user"),db=await claude.use("db");
@@ -221,11 +330,11 @@ async function init(){
  try{S.sample=await claude.use("sample")}catch(e){}
  try{S.mcp=await claude.use("mcp")}catch(e){}
  try{S.dl=await claude.use("downloads")}catch(e){}
- if(window.__standalone)await loadFeed();render()}
+ if(window.__standalone){await loadFeed();startLive()}render()}
 function render(){
- $("tabs").innerHTML=TABS.map(function(t){return "<button class='tab"+(S.tab===t[0]?" on":"")+"' data-t='"+t[0]+"'>"+t[1]+"</button>"}).join("");
+ $("tabs").innerHTML=TABS.map(function(t){return "<button class='tab"+(S.tab===t[0]?" on":"")+"' data-t='"+t[0]+"'>"+(t[2]?"<span class='ti'>"+t[2]+"</span>":"")+t[1]+"</button>"}).join("");
  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(b){b.onclick=function(){S.tab=b.dataset.t;render()}});
- var v={find:vFind,swipe:vSwipe,feed:vFeed,saved:function(){return vTrack("saved")},applied:function(){return vTrack("applied")},add:vAdd,tailor:vTailor,mail:vMail,setup:vSetup}[S.tab]();$("view").innerHTML=v;bind()}
+ var v={find:vFind,swipe:vSwipe,feed:vFeed,saved:function(){return vTrack("saved")},applied:function(){return vTrack("applied")},add:vAdd,tailor:vTailor,mail:vMail,setup:vSetup}[S.tab]();$("view").innerHTML=banner()+v;bind()}
 function vTrack(sc){var SC=sc==="saved"?["Saved","Referral asked"]:["Applied","Screening","Interview","Offer","Rejected","Ghosted"],F0=SC.indexOf(S.f)>-1?S.f:"All";
  var ids=Object.keys(S.apps).sort(function(a,b){return (S.apps[b].updated||0)-(S.apps[a].updated||0)}).filter(function(i){return SC.indexOf(S.apps[i].status)>-1}),cnt={};
  ids.forEach(function(i){var s=S.apps[i].status;cnt[s]=(cnt[s]||0)+1});
@@ -241,24 +350,15 @@ function vAdd(){
  "<div class='card'><h2>Capture from any job page</h2><p class='mut'>A page can’t read another site from here, so use a one-click bookmark: it runs on the job page you already have open (LinkedIn, Naukri or a company portal), copies the title, company, location, link and full description, and you paste it below.</p><ol class='mut'><li>Create a new bookmark in your browser, name it “Capture job”, and paste the code below as its URL.</li><li>On a job page, click the bookmark. It confirms the copy.</li><li>Paste here and press Add.</li></ol><label>Bookmark code</label><textarea id='bm' readonly style='min-height:90px'>"+esc(BM)+"</textarea><div class='row'><button class='btn' id='bmcopy'>Copy bookmark code</button></div><label>Paste captured job</label><textarea id='cap' placeholder='JOBCAPTURE:{...}'></textarea><div class='row'><button class='btn pri' id='capadd'>Add captured job</button></div></div>"+
  "<div class='card mut'>Tip: click the Capture bookmark on any Naukri, Indeed or LinkedIn job page, then paste here to track it with its full description. Searches live in the Find jobs tab.</div>"}
 function appOpts(sel){return Object.keys(S.apps).map(function(i){var a=S.apps[i];return "<option value='"+i+"'"+(i===sel?" selected":"")+">"+esc(a.company+" · "+a.role)+"</option>"}).join("")}
-function vTailor(){
- var t=S.tail&&S.apps[S.tail.id]?S.tail:null,a=S.apps[S.sel];
- var h="<div class='card'><h2>Tailor your resume to a job</h2><p class='mut'>Claude rewrites your master resume for the job description using only facts already in it, and lists the gaps instead of inventing skills. Always review before sending.</p>";
- if(!Object.keys(S.apps).length)return h+"<p>Add a job with a description first.</p></div>";
- h+="<div class='row'><select id='tsel'>"+appOpts(S.sel||Object.keys(S.apps)[0])+"</select><button class='btn pri' id='tgo'"+(S.busy?" disabled":"")+">"+(S.busy?"Working…":"Tailor")+"</button></div>"+(S.resume?"":"<p class='err'>Paste your master resume first (Master resume tab).</p>")+"</div>";
- var cur=S.tail||(a&&a.tailored?{id:S.sel,res:a.tailored,saved:true}:null);
- if(cur&&S.apps[cur.id]){h+="<div class='card'>"+(cur.score!=null?"<h2>Match: "+esc(cur.score)+"/100</h2><div><b>Matched:</b> "+(cur.matched||[]).map(function(x){return "<span class='chip'>"+esc(x)+"</span>"}).join("")+"</div><div><b>Gaps (don’t claim these):</b> "+(cur.gaps||[]).map(function(x){return "<span class='chip'>"+esc(x)+"</span>"}).join("")+"</div>":"<h2>Saved tailored resume</h2>")+"<label>Tailored resume (editable)</label><textarea id='tres' style='min-height:340px'>"+esc(cur.res)+"</textarea>"+(cur.cover?"<label>Short note for the recruiter</label><textarea id='tcov' style='min-height:80px'>"+esc(cur.cover)+"</textarea>":"")+"<div class='row'><button class='btn pri' id='tsave'>Save to application</button>"+(S.dl?"<button class='btn' id='tdl'>Download .md</button>":"")+"</div></div>"}
- return h}
 function vMail(){return vInbox()+vMail0()}
 function vMail0(){
  var h="<div class='card'><h2>Check specific applications</h2><p class='mut'>Searches your inbox for each company, asks Claude to classify what it finds, and suggests a status. Nothing changes until you press Apply. Read-only access.</p><div class='row'><select id='msel'><option value='*'>All active applications</option>"+appOpts("")+"</select><button class='btn pri' id='mgo'"+(S.busy?" disabled":"")+">"+(S.busy?"Scanning…":"Scan inbox")+"</button></div>"+(S.mcp?"":"<p class='warn'>Gmail access isn’t available in this view.</p>")+"</div>";
  var any=false;Object.keys(S.apps).forEach(function(i){var a=S.apps[i];if(!a.emails||!a.emails.length)return;any=true;h+="<div class='card'><h2>"+esc(a.company)+" <span class='mut'>("+esc(a.status)+")</span></h2>"+(S.scan[i]?"<p class='err mut'>"+esc(S.scan[i])+"</p>":"")+a.emails.map(function(m,k){return "<div class='row'><span class='chip'>"+esc(m.kind)+"</span><span>"+esc(m.subject)+"<br><span class='mut'>"+esc(m.sender)+" · "+day(Date.parse(m.date))+" · <a href='"+esc(m.url)+"' target='_blank' rel='noopener'>open</a></span></span>"+(m.sug&&m.sug!==a.status?"<button class='btn sm' data-ap='"+i+"|"+k+"'>Set “"+esc(m.sug)+"”</button>":"")+"</div>"}).join("")+"</div>"});
  Object.keys(S.scan).forEach(function(i){if(S.apps[i]&&(!S.apps[i].emails||!S.apps[i].emails.length)&&S.scan[i])h+="<div class='card mut'>"+esc(S.apps[i].company)+": "+esc(S.scan[i])+"</div>"});
  return h}
-function vSetup(){return "<div class='card'><h2>Master resume</h2><p class='mut'>Paste your resume as plain text once. It’s stored privately in your account and used only when you press Tailor. Keep your real, complete version here; tailoring never edits it.</p><textarea id='mres' style='min-height:380px' placeholder='Paste your full resume text'>"+esc(S.resume)+"</textarea><div class='row'><button class='btn pri' id='msave'>Save master resume</button><span class='mut'>"+(S.resume?S.resume.length+" characters saved":"")+"</span></div>"+skillsNote()+"</div>"+settingsCard()}
 var BM="javascript:(function(){var t=document.title,m=document.querySelector('meta[property=\"og:site_name\"]'),s=m?m.content:location.hostname,j=null;document.querySelectorAll('script[type=\"application/ld+json\"]').forEach(function(e){try{var d=JSON.parse(e.textContent);[].concat(d['@graph']||d).forEach(function(x){if(x&&x['@type']==='JobPosting')j=x})}catch(_){}});var el=document.createElement('div');el.innerHTML=j?(j.description||''):'';var txt=j?el.textContent:((document.querySelector('main')||document.body).innerText||'');var loc=j&&j.jobLocation?JSON.stringify(j.jobLocation).replace(/[{}\\[\\]\"]/g,' ').slice(0,200):'';var o={title:j?j.title:t,company:j&&j.hiringOrganization?j.hiringOrganization.name:s,location:loc,url:location.href,jd:txt.replace(/\\s+/g,' ').slice(0,12000)};var c='JOBCAPTURE:'+JSON.stringify(o);navigator.clipboard.writeText(c).then(function(){alert('Job copied. Paste it into your tracker.')},function(){prompt('Copy this:',c)})})();";
 function bind(){
- bindDeck();bindSettings();
+ bindDeck();bindSettings();bindResume();
  var q=$("q");if(q)q.oninput=function(){S.q=q.value;var p=q.selectionStart;render();var n=$("q");n.focus();n.setSelectionRange(p,p)};
  if($("fs"))$("fs").onchange=function(){S.f=$("fs").value;render()};
  each("[data-st]",function(e){e.onchange=function(){upd(e.dataset.st,{status:e.value,applied:(e.value==="Applied"&&!S.apps[e.dataset.st].applied)?new Date().toISOString().slice(0,10):S.apps[e.dataset.st].applied})}});
@@ -269,21 +369,9 @@ function bind(){
  if($("bmcopy"))$("bmcopy").onclick=function(){var t=$("bm");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand("copy")}this.textContent="Copied ✓"};
  if($("capadd"))$("capadd").onclick=function(){var v=$("cap").value.trim().replace(/^JOBCAPTURE:/,"");try{var o=JSON.parse(v);addApp({company:o.company||"",role:o.title||"",location:o.location||"",url:o.url||"",jd:o.jd||""})}catch(e){note("That doesn’t look like a captured job. Click the bookmark on the job page again, then paste.","err")}};
  if($("msave"))$("msave").onclick=function(){S.resume=$("mres").value;if(S.col)S.col.doc("resume").set({text:S.resume}).then(function(){note("Master resume saved.","ok")}).catch(function(e){note("Could not save: "+(e&&e.code||e),"err")});else note("Saved for this session only.","warn");render()};
- if($("tgo"))$("tgo").onclick=function(){tailor($("tsel").value)};
- if($("tsel"))$("tsel").onchange=function(){S.sel=$("tsel").value;S.tail=null;render()};
- if($("tsave"))$("tsave").onclick=function(){var id=S.tail?S.tail.id:S.sel;upd(id,{tailored:$("tres").value});note("Saved to the application.","ok")};
- if($("tdl"))$("tdl").onclick=function(){var id=S.tail?S.tail.id:S.sel,a=S.apps[id];S.dl.save({filename:("resume-"+(a.company||"job")+".md").replace(/[^\w.\-]+/g,"_"),data:new Blob([$("tres").value],{type:"text/markdown"})}).catch(function(e){if(e&&e.code!=="declined")note("Download failed: "+(e.code||e.message),"err")})};
  if($("mgo"))$("mgo").onclick=function(){scan($("msel").value)};
  each("[data-ap]",function(e){e.onclick=function(){var p=e.dataset.ap.split("|"),a=S.apps[p[0]];upd(p[0],{status:a.emails[+p[1]].sug})}})}
 function each(s,f){Array.prototype.forEach.call(document.querySelectorAll(s),f)}
-async function tailor(id){
- var a=S.apps[id];if(!S.sample){note("Claude isn’t available in this view.","warn");return}
- if(!S.resume){note("Paste your master resume first.","warn");return}
- if(!a.jd||a.jd.length<80){note("Add the job description to this application first.","warn");return}
- S.busy=true;S.sel=id;note("Tailoring… this takes about a minute.");render();
- var p="You tailor a resume to a job description.\nSTRICT RULES: use only facts that appear in MASTER RESUME. Never invent employers, titles, dates, metrics, tools or skills. You may reorder, merge, shorten and reword, and mirror the JD’s terminology only where the resume already shows that skill. If the JD needs something the resume does not show, put it in gaps and do not claim it. Keep one page of plain markdown with the same sections as the master (summary, skills, experience, projects, education), keeping contact details exactly as in the master.\nReturn JSON only: {\"score\":0-100 honest fit,\"matched\":[up to 10 short strings],\"gaps\":[up to 8 short strings],\"resume\":\"full tailored resume\",\"cover\":\"3-4 sentence note to the recruiter\"}\n\nJOB: "+a.role+" at "+a.company+"\n"+a.jd.slice(0,9000)+"\n\nMASTER RESUME:\n"+S.resume.slice(0,9000);
- try{var r=await S.sample.json(p,{modelTier:"complex",cache:false});S.tail={id:id,score:r.score,matched:r.matched,gaps:r.gaps,res:r.resume,cover:r.cover};note("")}catch(e){note(sErr(e),"err")}
- S.busy=false;render()}
 async function scan(which){
  if(!S.mcp){note("Gmail access isn’t available in this view.","warn");return}
  var ids=which==="*"?Object.keys(S.apps).filter(function(i){return ["Applied","Referral asked","Screening","Interview"].indexOf(S.apps[i].status)>-1&&S.apps[i].company}).slice(0,15):[which];
